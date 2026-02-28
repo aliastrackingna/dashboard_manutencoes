@@ -19,6 +19,12 @@
             <option value="{{ g }}" {% if grupo == g %}selected{% endif %}>{{ g }}</option>
             {% endfor %}
         </select>
+        <select name="periodo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="">Todo o período</option>
+            {% for chave, label in periodos.items %}
+            <option value="{{ chave }}" {% if periodo == chave %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
         <button type="submit" class="bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-6 rounded-lg transition-colors text-sm">
             Buscar
         </button>
