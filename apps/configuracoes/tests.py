@@ -60,3 +60,14 @@ class KPIConfigViewTest(TestCase):
         })
         kpi.refresh_from_db()
         self.assertEqual(kpi.valor, Decimal('20.50'))
+
+    def test_editar_valor_invalido(self):
+        self.client.get(reverse('configuracoes:kpis'))
+        kpi = KPIConfig.objects.get(chave='custo_maximo_os')
+        valor_antes = kpi.valor
+        response = self.client.post(reverse('configuracoes:kpis'), {
+            f'valor_{kpi.id}': 'abc',
+        })
+        self.assertEqual(response.status_code, 302)
+        kpi.refresh_from_db()
+        self.assertEqual(kpi.valor, valor_antes)

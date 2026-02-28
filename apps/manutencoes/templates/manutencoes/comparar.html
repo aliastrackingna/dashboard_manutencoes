@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Comparar Orçamentos — OS {{ manutencao.numero_os }} — QFrotas{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold">Comparar Orçamentos</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                OS <span class="font-mono">{{ manutencao.numero_os }}</span> — {{ orcamentos|length }} orçamentos
+            </p>
+        </div>
+        <a href="{% url 'manutencoes:detalhe' manutencao.numero_os %}"
+           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
+                  bg-gray-200 text-gray-700 hover:bg-gray-300
+                  dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Voltar
+        </a>
+    </div>
+
+    <!-- Legenda -->
+    <div class="flex flex-wrap gap-4 mb-4 text-xs">
+        <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 rounded bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700"></span>
+            Menor preço
+        </span>
+        <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700"></span>
+            Maior preço
+        </span>
+        <span class="flex items-center gap-1">
+            <span class="inline-block w-3 h-3 rounded bg-yellow-100 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700"></span>
+            Item exclusivo
+        </span>
+    </div>
+
+    <!-- Tabela de comparação -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold sticky left-0 bg-gray-50 dark:bg-gray-700/50 min-w-[200px] z-10">
+                        Item
+                    </th>
+                    {% for orc in orcamentos %}
+                    <th class="px-4 py-3 text-center text-xs font-semibold min-w-[180px]">
+                        <div class="font-mono">#{{ orc.codigo_orcamento }}</div>
+                        <div class="text-gray-500 dark:text-gray-400 font-normal truncate max-w-[180px]" title="{{ orc.oficina }}">{{ orc.oficina_curta }}</div>
+                        <div class="mt-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if orc.status == 'Executado' or orc.status == 'Escolhido' or orc.status == 'Em Execução' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif orc.status == 'Recusado' or orc.status == 'Cancelado' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                {{ orc.status }}
+                            </span>
+                        </div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for linha in linhas %}
+                <tr>
+                    <td class="px-4 py-2 sticky left-0 bg-white dark:bg-gray-800 z-10 border-r border-gray-200 dark:border-gray-700">
+                        <div class="font-medium">{{ linha.descricao }}</div>
+                        {% if linha.chave != linha.descricao %}
+                        <div class="text-xs text-gray-400 font-mono">{{ linha.chave }}</div>
+                        {% endif %}
+                    </td>
+                    {% for celula in linha.celulas %}
+                    <td class="px-4 py-2 text-center
+                        {% if celula.classe == 'menor' %}bg-green-50 dark:bg-green-900/30
+                        {% elif celula.classe == 'maior' %}bg-red-50 dark:bg-red-900/30
+                        {% elif celula.classe == 'exclusivo' %}bg-yellow-50 dark:bg-yellow-900/30{% endif %}">
+                        {% if celula.item %}
+                        <div class="font-semibold {% if celula.exclusivo %}italic{% endif %}">
+                            R$ {{ celula.item.total|floatformat:2 }}
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ celula.item.qtd|floatformat:0 }}x R$ {{ celula.item.valor_unit|floatformat:2 }}
+                        </div>
+                        {% if celula.item.marca %}
+                        <div class="text-xs text-gray-400">{{ celula.item.marca }}</div>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-gray-300 dark:text-gray-600">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-gray-50 dark:bg-gray-700/50 font-semibold">
+                <tr>
+                    <td class="px-4 py-3 sticky left-0 bg-gray-50 dark:bg-gray-700/50 z-10 border-r border-gray-200 dark:border-gray-700">
+                        Total
+                    </td>
+                    {% for orc in orcamentos %}
+                    <td class="px-4 py-3 text-center text-base">
+                        R$ {{ orc.valor|floatformat:2 }}
+                    </td>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -149,3 +149,110 @@ class DashboardViewsTest(TestCase):
         response = self.client.get(reverse('dashboard:lista'), {'filtro': 'status', 'valor': 'Executada'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['page'].paginator.count, 1)
+
+    def test_lista_drilldown_filtro_setor(self):
+        v = Veiculo.objects.create(placa='TST0002', marca='FIAT', modelo='Uno')
+        Manutencao.objects.create(numero_os='OS-S1', veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 5)), status='Executada', setor='Transporte')
+        Manutencao.objects.create(numero_os='OS-S2', veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 6)), status='Executada', setor='Garagem')
+        response = self.client.get(reverse('dashboard:lista'), {'filtro': 'setor', 'valor': 'Transporte'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page'].paginator.count, 1)
+        self.assertEqual(response.context['titulo'], 'OS — Setor: Transporte')
+
+    def test_lista_drilldown_filtro_veiculo(self):
+        v = Veiculo.objects.create(placa='VEI0001', marca='VW', modelo='Gol')
+        Manutencao.objects.create(numero_os='OS-V1', veiculo=v,
+            data_abertura=timezone.now(), status='Executada')
+        response = self.client.get(reverse('dashboard:lista'), {'filtro': 'veiculo', 'valor': 'VEI0001'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page'].paginator.count, 1)
+        self.assertEqual(response.context['titulo'], 'OS — Veículo: VEI0001')
+
+    def test_lista_drilldown_filtro_mes(self):
+        v = Veiculo.objects.create(placa='MES0001', marca='FORD', modelo='Ka')
+        Manutencao.objects.create(numero_os='OS-M1', veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)), status='Executada')
+        Manutencao.objects.create(numero_os='OS-M2', veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 3, 10)), status='Executada')
+        response = self.client.get(reverse('dashboard:lista'), {'filtro': 'mes', 'valor': 'Feb/2026'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page'].paginator.count, 1)
+
+    def test_lista_drilldown_filtro_mes_invalido(self):
+        response = self.client.get(reverse('dashboard:lista'), {'filtro': 'mes', 'valor': 'invalido'})
+        self.assertEqual(response.status_code, 200)
+
+
+class GetPeriodoTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_periodo_60d(self):
+        response = self.client.get(reverse('dashboard:index'), {'periodo': '60d'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_periodo_90d(self):
+        response = self.client.get(reverse('dashboard:index'), {'periodo': '90d'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_periodo_custom(self):
+        response = self.client.get(reverse('dashboard:index'), {
+            'periodo': 'custom', 'inicio': '2026-01-01', 'fim': '2026-06-30',
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_periodo_custom_invalido(self):
+        response = self.client.get(reverse('dashboard:index'), {
+            'periodo': 'custom', 'inicio': 'abc', 'fim': 'xyz',
+        })
+        self.assertEqual(response.status_code, 200)
+
+
+class DadosGraficosInsightsTest(TestCase):
+    def setUp(self):
+        self.v = Veiculo.objects.create(placa='INS0001', marca='VW', modelo='Gol')
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_oficinas_insight(self):
+        m = Manutencao.objects.create(numero_os='OS-OFC1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 1)), status='Executada')
+        Orcamento.objects.create(manutencao=m, codigo_orcamento=7001,
+            data=datetime(2026, 2, 2).date(), oficina='MECANICA CENTRAL', valor=Decimal('500'), status='Escolhido')
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertIn('MECANICA CENTRAL', graficos['oficinas_insight'])
+
+    def test_tipo_insight_pecas(self):
+        m = Manutencao.objects.create(numero_os='OS-TIP1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 1)), status='Executada')
+        orc = Orcamento.objects.create(manutencao=m, codigo_orcamento=7002,
+            data=datetime(2026, 2, 2).date(), oficina='OFICINA X', valor=Decimal('1000'), status='Escolhido')
+        ItemOrcamento.objects.create(orcamento=orc, tipo='PCA', descricao='FILTRO',
+            valor_unit=Decimal('100'), qtd=Decimal('3'), total=Decimal('300'))
+        ItemOrcamento.objects.create(orcamento=orc, tipo='SRV', descricao='MAO DE OBRA',
+            valor_unit=Decimal('50'), qtd=Decimal('1'), total=Decimal('50'))
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertIn('Peças', graficos['tipo_insight'])
+
+    def test_tipo_insight_servicos(self):
+        m = Manutencao.objects.create(numero_os='OS-TIP2', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 1)), status='Executada')
+        orc = Orcamento.objects.create(manutencao=m, codigo_orcamento=7003,
+            data=datetime(2026, 2, 2).date(), oficina='OFICINA Y', valor=Decimal('1000'), status='Executado')
+        ItemOrcamento.objects.create(orcamento=orc, tipo='PCA', descricao='PARAFUSO',
+            valor_unit=Decimal('5'), qtd=Decimal('1'), total=Decimal('5'))
+        ItemOrcamento.objects.create(orcamento=orc, tipo='SRV', descricao='RETIFICA',
+            valor_unit=Decimal('500'), qtd=Decimal('1'), total=Decimal('500'))
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertIn('Serviços', graficos['tipo_insight'])
+
+    def test_sem_dados_insights_vazios(self):
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertEqual(graficos['status_insight'], '')
+        self.assertEqual(graficos['evolucao_insight'], '')
+        self.assertEqual(graficos['veiculos_insight'], '')
+        self.assertEqual(graficos['oficinas_insight'], '')
+        self.assertEqual(graficos['tipo_insight'], '')
+        self.assertEqual(graficos['setor_insight'], '')

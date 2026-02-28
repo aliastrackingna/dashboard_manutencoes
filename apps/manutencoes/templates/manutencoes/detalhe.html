@@ -72,7 +72,17 @@
     </div>
 
     <!-- Orçamentos -->
-    <h2 class="text-lg font-bold mb-4">Orçamentos ({{ orcamentos|length }})</h2>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Orçamentos ({{ orcamentos|length }})</h2>
+        {% if orcamentos|length >= 2 %}
+        <a href="{% url 'manutencoes:comparar_orcamentos' manutencao.numero_os %}"
+           class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg
+                  bg-primary text-white hover:bg-primary-dark transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
+            Comparar Orçamentos
+        </a>
+        {% endif %}
+    </div>
 
     {% for orc in orcamentos %}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-4
