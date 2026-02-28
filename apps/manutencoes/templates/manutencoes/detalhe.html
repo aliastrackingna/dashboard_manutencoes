@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}OS {{ manutencao.numero_os }} — QFrotas{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <!-- Header -->
+    <div class="flex items-start justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold font-mono">OS {{ manutencao.numero_os }}</h1>
+            <div class="flex items-center gap-3 mt-1">
+                <a href="{% url 'veiculos:detalhe' manutencao.veiculo.placa %}" class="text-primary hover:underline font-mono">
+                    {{ manutencao.veiculo.placa }}
+                </a>
+                <span class="text-gray-400">{{ manutencao.modelo_veiculo }}</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    {% if manutencao.status == 'Executada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                    {% elif manutencao.status == 'Cancelada pelo Usuário' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                    {% elif manutencao.status == 'Em Execução' or manutencao.status == 'Autorizada Execução' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                    {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% endif %}">
+                    {{ manutencao.status }}
+                </span>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-2xl font-bold">R$ {{ manutencao.valor_total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-400">Valor total</p>
+        </div>
+    </div>
+
+    <!-- Datas e Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <p class="text-xs text-gray-400">Abertura</p>
+                <p class="font-semibold">{{ manutencao.data_abertura|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Previsão</p>
+                <p class="font-semibold">{{ manutencao.data_previsao|date:"d/m/Y H:i"|default:"-" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Encerramento</p>
+                <p class="font-semibold">{{ manutencao.data_encerramento|date:"d/m/Y H:i"|default:"-" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Setor</p>
+                <p class="font-semibold">{{ manutencao.setor|default:"-" }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            <div>
+                <p class="text-xs text-gray-400">Peças</p>
+                <p class="font-semibold">R$ {{ manutencao.valor_pecas|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Serviços</p>
+                <p class="font-semibold">R$ {{ manutencao.valor_servicos|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Total</p>
+                <p class="font-semibold">R$ {{ manutencao.valor_total|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        {% if manutencao.descricao %}
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <p class="text-xs text-gray-400 mb-1">Descrição dos serviços</p>
+            <p class="text-sm whitespace-pre-line">{{ manutencao.descricao }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Orçamentos -->
+    <h2 class="text-lg font-bold mb-4">Orçamentos ({{ orcamentos|length }})</h2>
+
+    {% for orc in orcamentos %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-4
+                {% if orc.status == 'Escolhido' or orc.status == 'Executado' or orc.status == 'Em Execução' %}ring-2 ring-primary{% endif %}">
+        <!-- Accordion Header -->
+        <button type="button" onclick="this.nextElementSibling.classList.toggle('hidden')"
+                class="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-t-xl transition-colors">
+            <div class="flex items-center gap-3">
+                <span class="font-mono font-semibold text-sm">#{{ orc.codigo_orcamento }}</span>
+                <span class="text-sm text-gray-500">{{ orc.oficina|truncatechars:50 }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                    {% if orc.status == 'Executado' or orc.status == 'Escolhido' or orc.status == 'Em Execução' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                    {% elif orc.status == 'Recusado' or orc.status == 'Cancelado' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                    {{ orc.status }}
+                </span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="font-semibold">R$ {{ orc.valor|floatformat:2 }}</span>
+                <span class="text-xs text-gray-400">{{ orc.data|date:"d/m/Y" }}</span>
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+        </button>
+
+        <!-- Accordion Content -->
+        <div class="{% if orc.status != 'Escolhido' and orc.status != 'Executado' and orc.status != 'Em Execução' %}hidden{% endif %} border-t border-gray-200 dark:border-gray-700">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 dark:bg-gray-700/50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-semibold">Tipo</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold">Código</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold">Descrição</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold">Marca</th>
+                            <th class="px-4 py-2 text-right text-xs font-semibold">Qtd</th>
+                            <th class="px-4 py-2 text-right text-xs font-semibold">Valor Unit.</th>
+                            <th class="px-4 py-2 text-right text-xs font-semibold">Total</th>
+                            <th class="px-4 py-2 text-center text-xs font-semibold">Garantia</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for item in orc.itens.all %}
+                        <tr>
+                            <td class="px-4 py-2">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                                    {% if item.tipo == 'PCA' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                    {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
+                                    {{ item.tipo }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 font-mono text-xs text-gray-500">{{ item.codigo_item|default:"-" }}</td>
+                            <td class="px-4 py-2">{{ item.descricao }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ item.marca|default:"-" }}</td>
+                            <td class="px-4 py-2 text-right">{{ item.qtd|floatformat:0 }}</td>
+                            <td class="px-4 py-2 text-right">R$ {{ item.valor_unit|floatformat:2 }}</td>
+                            <td class="px-4 py-2 text-right font-semibold">R$ {{ item.total|floatformat:2 }}</td>
+                            <td class="px-4 py-2 text-center text-xs">{{ item.garantia|date:"d/m/Y"|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-4 py-4 text-center text-gray-400 text-xs">Sem itens.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-gray-400 text-sm">Nenhum orçamento registrado para esta OS.</p>
+    {% endfor %}
+</div>
+{% endblock %}

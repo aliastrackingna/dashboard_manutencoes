@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Configurações KPI — QFrotas{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <h1 class="text-2xl font-bold mb-6">Configurações de KPI</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold">Descrição</th>
+                        <th class="px-4 py-3 text-right font-semibold w-40">Valor</th>
+                        <th class="px-4 py-3 text-center font-semibold w-20">Unidade</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for kpi in kpis %}
+                    <tr>
+                        <td class="px-4 py-3">
+                            <p class="font-medium">{{ kpi.descricao }}</p>
+                            <p class="text-xs text-gray-400 font-mono">{{ kpi.chave }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="text" name="valor_{{ kpi.id }}" value="{{ kpi.valor|floatformat:2 }}"
+                                   class="w-full text-right rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-1.5 text-sm">
+                        </td>
+                        <td class="px-4 py-3 text-center text-gray-400">{{ kpi.unidade }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit"
+                    class="bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+                Salvar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

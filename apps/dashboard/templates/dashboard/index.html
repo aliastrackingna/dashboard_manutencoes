@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard — QFrotas{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Dashboard</h1>
+
+    <div class="flex items-center gap-2">
+        <select id="periodo-select" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="anual" {% if periodo == 'anual' %}selected{% endif %}>Ano Corrente</option>
+            <option value="30d" {% if periodo == '30d' %}selected{% endif %}>Últimos 30 dias</option>
+            <option value="60d" {% if periodo == '60d' %}selected{% endif %}>Últimos 60 dias</option>
+            <option value="90d" {% if periodo == '90d' %}selected{% endif %}>Últimos 90 dias</option>
+        </select>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-xs text-gray-400 mb-1">Total de OS</p>
+        <p class="text-2xl font-bold text-primary">{{ kpis.total_os }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-xs text-gray-400 mb-1">Total Executado</p>
+        <p class="text-2xl font-bold text-green-600">R$ {{ kpis.valor_total_executado|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-xs text-gray-400 mb-1">Valor Total Aprovado</p>
+        <p class="text-2xl font-bold text-blue-600">R$ {{ kpis.valor_aprovado_executado|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-xs text-gray-400 mb-1">Ticket Médio</p>
+        <p class="text-2xl font-bold">R$ {{ kpis.ticket_medio|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-xs text-gray-400 mb-1">OS Dentro do Prazo</p>
+        <p class="text-2xl font-bold {% if kpis.pct_prazo >= 80 %}text-green-600{% elif kpis.pct_prazo >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+            {{ kpis.pct_prazo }}%
+        </p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <p class="text-xs text-gray-400 mb-1">Tempo Médio Resolução</p>
+        <p class="text-2xl font-bold">{{ kpis.tempo_medio_dias }} dias</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- OS por Status -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">OS por Status</h3>
+        {% if graficos.status_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.status_insight }}</p>
+        {% endif %}
+        <canvas id="chart-status" height="280"></canvas>
+    </div>
+
+    <!-- Evolução Mensal -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">Evolução Mensal de OS</h3>
+        {% if graficos.evolucao_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.evolucao_insight }}</p>
+        {% endif %}
+        <canvas id="chart-evolucao" height="250"></canvas>
+    </div>
+
+    <!-- Top 10 Veículos -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">Top 10 Veículos por Gasto</h3>
+        {% if graficos.veiculos_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.veiculos_insight }}</p>
+        {% endif %}
+        <canvas id="chart-veiculos" height="300"></canvas>
+    </div>
+
+    <!-- Top 10 Oficinas -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">Top 10 Oficinas por Volume</h3>
+        {% if graficos.oficinas_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.oficinas_insight }}</p>
+        {% endif %}
+        <canvas id="chart-oficinas" height="300"></canvas>
+    </div>
+
+    <!-- Peças vs Serviços -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">Distribuição Peças vs Serviços</h3>
+        {% if graficos.tipo_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.tipo_insight }}</p>
+        {% endif %}
+        <canvas id="chart-tipo" height="250"></canvas>
+    </div>
+
+    <!-- OS por Setor -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">OS por Setor</h3>
+        {% if graficos.setor_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.setor_insight }}</p>
+        {% endif %}
+        <canvas id="chart-setor" height="280"></canvas>
+    </div>
+</div>
+
+<script>
+const graficos = {{ graficos|safe }};
+const CORES = ['#2563eb','#16a34a','#d97706','#dc2626','#8b5cf6','#06b6d4','#ec4899','#f59e0b','#10b981','#6366f1'];
+
+function drillTo(filtro, valor) {
+    const periodo = document.getElementById('periodo-select').value;
+    window.location.href = `/dashboard/lista/?filtro=${filtro}&valor=${encodeURIComponent(valor)}&periodo=${periodo}`;
+}
+
+// OS por Status (Horizontal Bar — storytelling)
+const STATUS_CORES = {
+    'Lançada': '#9ca3af',
+    'Orçamentação': '#d97706',
+    'Análise Solicitante': '#9ca3af',
+    'Controladoria': '#9ca3af',
+    'Autorizada Execução': '#2563eb',
+    'Em Execução': '#2563eb',
+    'Executada': '#16a34a',
+    'Cancelada pelo Usuário': '#dc2626',
+};
+const statusLabels = Object.keys(graficos.os_por_status);
+const statusData = Object.values(graficos.os_por_status);
+const statusColors = statusLabels.map(l => STATUS_CORES[l] || '#9ca3af');
+
+new Chart(document.getElementById('chart-status'), {
+    type: 'bar',
+    data: {
+        labels: statusLabels,
+        datasets: [{
+            data: statusData,
+            backgroundColor: statusColors,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true },
+        },
+        scales: {
+            x: { display: false },
+            y: { ticks: { font: { size: 13 } } },
+        },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                drillTo('status', statusLabels[els[0].index]);
+            }
+        }
+    },
+    plugins: [{
+        id: 'datalabels-inline',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            chart.data.datasets[0].data.forEach((val, i) => {
+                const meta = chart.getDatasetMeta(0).data[i];
+                ctx.save();
+                ctx.fillStyle = '#374151';
+                ctx.font = 'bold 13px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(val, meta.x + 6, meta.y);
+                ctx.restore();
+            });
+        }
+    }]
+});
+
+// Datalabels plugin factory
+function datalabelsPlugin(id, {formatFn = v => v, color = '#374151'} = {}) {
+    return {
+        id,
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const isHorizontal = chart.config.options.indexAxis === 'y';
+            chart.data.datasets[0].data.forEach((val, i) => {
+                const meta = chart.getDatasetMeta(0).data[i];
+                ctx.save();
+                ctx.fillStyle = color;
+                ctx.font = 'bold 13px sans-serif';
+                if (isHorizontal) {
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(formatFn(val), meta.x + 6, meta.y);
+                } else {
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(formatFn(val), meta.x, meta.y - 4);
+                }
+                ctx.restore();
+            });
+        }
+    };
+}
+
+function formatBRL(v) {
+    return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+// Evolução Mensal
+new Chart(document.getElementById('chart-evolucao'), {
+    type: 'bar',
+    data: {
+        labels: graficos.evolucao_mensal.labels,
+        datasets: [{
+            data: graficos.evolucao_mensal.data,
+            backgroundColor: '#2563eb',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { display: false },
+            x: { ticks: { font: { size: 13 } } },
+        },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                const label = graficos.evolucao_mensal.labels[els[0].index];
+                drillTo('mes', label);
+            }
+        }
+    },
+    plugins: [datalabelsPlugin('dl-evolucao')]
+});
+
+// Top Veículos (Horizontal Bar)
+new Chart(document.getElementById('chart-veiculos'), {
+    type: 'bar',
+    data: {
+        labels: graficos.top_veiculos.map(v => v.placa),
+        datasets: [{
+            data: graficos.top_veiculos.map(v => v.total),
+            backgroundColor: '#16a34a',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { display: false },
+            y: { ticks: { font: { size: 13 } } },
+        },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                const placa = graficos.top_veiculos[els[0].index].placa;
+                window.location.href = `/veiculos/${placa}/`;
+            }
+        }
+    },
+    plugins: [datalabelsPlugin('dl-veiculos', {formatFn: formatBRL})]
+});
+
+// Top Oficinas (Horizontal Bar)
+new Chart(document.getElementById('chart-oficinas'), {
+    type: 'bar',
+    data: {
+        labels: graficos.top_oficinas.map(o => o.oficina),
+        datasets: [{
+            data: graficos.top_oficinas.map(o => o.total),
+            backgroundColor: '#d97706',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { display: false },
+            y: { ticks: { font: { size: 13 } } },
+        },
+    },
+    plugins: [datalabelsPlugin('dl-oficinas')]
+});
+
+// Peças vs Serviços (Donut — 2 fatias, válido)
+new Chart(document.getElementById('chart-tipo'), {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(graficos.dist_tipo).map(k => k === 'PCA' ? 'Peças' : 'Serviços'),
+        datasets: [{
+            data: Object.values(graficos.dist_tipo),
+            backgroundColor: ['#2563eb', '#16a34a'],
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'right', labels: { boxWidth: 14, font: { size: 13 } } },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? Math.round(ctx.raw / total * 100) : 0;
+                        return `${ctx.label}: ${formatBRL(ctx.raw)} (${pct}%)`;
+                    }
+                }
+            },
+        },
+    },
+    plugins: [{
+        id: 'dl-tipo',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const ds = chart.data.datasets[0];
+            const total = ds.data.reduce((a, b) => a + b, 0);
+            if (total === 0) return;
+            // Percentual em cada fatia
+            ds.data.forEach((val, i) => {
+                const meta = chart.getDatasetMeta(0).data[i];
+                const pos = meta.tooltipPosition();
+                const pct = Math.round(val / total * 100);
+                ctx.save();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${pct}%`, pos.x, pos.y);
+                ctx.restore();
+            });
+            // Valor total no centro do donut
+            const {top, bottom, left, right} = chart.chartArea;
+            const cx = (left + right) / 2;
+            const cy = (top + bottom) / 2;
+            ctx.save();
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(formatBRL(total), cx, cy);
+            ctx.restore();
+        }
+    }]
+});
+
+// OS por Setor (Horizontal Bar)
+const setorLabels = Object.keys(graficos.os_por_setor);
+const setorData = Object.values(graficos.os_por_setor);
+
+new Chart(document.getElementById('chart-setor'), {
+    type: 'bar',
+    data: {
+        labels: setorLabels,
+        datasets: [{
+            data: setorData,
+            backgroundColor: '#8b5cf6',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { display: false },
+            y: { ticks: { font: { size: 13 } } },
+        },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                drillTo('setor', setorLabels[els[0].index]);
+            }
+        }
+    },
+    plugins: [datalabelsPlugin('dl-setor')]
+});
+
+// Period filter
+document.getElementById('periodo-select').addEventListener('change', function() {
+    window.location.href = `/dashboard/?periodo=${this.value}`;
+});
+</script>
+{% endblock %}

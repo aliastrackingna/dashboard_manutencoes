@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Pesquisa Itens — QFrotas{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Pesquisa por Itens de Orçamento</h1>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <form method="get" class="flex flex-wrap gap-3">
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar peças ou serviços..."
+               class="flex-1 min-w-[200px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="tipo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="">Todos os tipos</option>
+            <option value="PCA" {% if tipo == 'PCA' %}selected{% endif %}>Peças (PCA)</option>
+            <option value="SRV" {% if tipo == 'SRV' %}selected{% endif %}>Serviços (SRV)</option>
+        </select>
+        <select name="grupo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="">Todos os grupos</option>
+            {% for g in grupos_disponiveis %}
+            <option value="{{ g }}" {% if grupo == g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-6 rounded-lg transition-colors text-sm">
+            Buscar
+        </button>
+    </form>
+</div>
+
+{% if resultados %}
+<p class="text-sm text-gray-400 mb-4">{{ resultados|length }} resultado(s)</p>
+
+<div class="space-y-4">
+    {% for item in resultados %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-start justify-between mb-2">
+            <div>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium mr-2
+                    {% if item.tipo == 'PCA' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                    {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
+                    {{ item.tipo }}
+                </span>
+                {% if item.codigo_item and item.codigo_item != '-' %}
+                <span class="font-mono text-xs text-gray-400 mr-1">[{{ item.codigo_item }}]</span>
+                {% endif %}
+                <span class="font-semibold">{{ item.descricao }}</span>
+                {% if item.marca and item.marca != '-' %}
+                <span class="text-gray-400 text-sm ml-2">{{ item.marca }}</span>
+                {% endif %}
+            </div>
+            <span class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ item.grupo }}</span>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4 mt-3 text-sm">
+            <div>
+                <p class="text-xs text-gray-400">Ocorrências</p>
+                <p class="font-bold text-lg">{{ item.ocorrencias }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Valor Mín.</p>
+                <p class="font-semibold">R$ {{ item.valor_min|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Valor Máx.</p>
+                <p class="font-semibold">R$ {{ item.valor_max|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Valor Médio</p>
+                <p class="font-semibold">R$ {{ item.valor_medio|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        {% if item.exemplos %}
+        <div class="mt-3 border-t border-gray-100 dark:border-gray-700 pt-2">
+            <p class="text-xs text-gray-400 mb-1">Encontrado em:</p>
+            <div class="flex flex-wrap gap-2">
+                {% for ex in item.exemplos %}
+                <a href="{% url 'manutencoes:detalhe' ex.os %}"
+                   class="text-xs px-2 py-1 rounded transition-colors
+                    {% if ex.orcamento_status == 'Executado' or ex.orcamento_status == 'Escolhido' or ex.orcamento_status == 'Em Execução' %}bg-green-50 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50
+                    {% elif ex.orcamento_status == 'Recusado' or ex.orcamento_status == 'Cancelado' %}bg-red-50 text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50
+                    {% else %}bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600{% endif %}">
+                    OS {{ ex.os }} (Orç. #{{ ex.orcamento }}) — R$ {{ ex.valor|floatformat:2 }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% elif q or tipo %}
+<p class="text-gray-400 text-sm text-center py-8">Nenhum resultado encontrado para "{{ q }}".</p>
+{% else %}
+<p class="text-gray-400 text-sm text-center py-8">Digite um termo para pesquisar peças e serviços nos orçamentos.</p>
+{% endif %}
+{% endblock %}

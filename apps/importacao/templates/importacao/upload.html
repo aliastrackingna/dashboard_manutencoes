@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Importação — QFrotas{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <h1 class="text-2xl font-bold mb-6">Importação de Dados</h1>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Veículos (CSV)</label>
+                <input type="file" name="veiculos" accept=".csv"
+                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
+                <p class="text-xs text-gray-400 mt-1">Carga inicial de veículos (opcional)</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Manutenções (CSV)</label>
+                <input type="file" name="manutencoes" accept=".csv"
+                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Orçamentos (CSV)</label>
+                <input type="file" name="orcamentos" accept=".csv"
+                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Itens de Orçamento (CSV)</label>
+                <input type="file" name="itens" accept=".csv"
+                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
+            </div>
+        </div>
+
+        <button type="submit"
+                class="bg-primary hover:bg-primary-dark text-white font-semibold py-2.5 px-6 rounded-lg transition-colors">
+            Processar
+        </button>
+    </form>
+
+    {% if relatorio %}
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-bold mb-4">Relatório de Importação</h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {% if relatorio.veiculos_inseridos or relatorio.veiculos_atualizados %}
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-primary">{{ relatorio.veiculos_inseridos }}</p>
+                <p class="text-xs text-gray-500">Veículos inseridos</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-blue-400">{{ relatorio.veiculos_atualizados }}</p>
+                <p class="text-xs text-gray-500">Veículos atualizados</p>
+            </div>
+            {% endif %}
+
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-green-600">{{ relatorio.manutencoes_inseridas }}</p>
+                <p class="text-xs text-gray-500">OS inseridas</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-blue-400">{{ relatorio.manutencoes_atualizadas }}</p>
+                <p class="text-xs text-gray-500">OS atualizadas</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-green-600">{{ relatorio.orcamentos_inseridos }}</p>
+                <p class="text-xs text-gray-500">Orçamentos inseridos</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-blue-400">{{ relatorio.orcamentos_atualizados }}</p>
+                <p class="text-xs text-gray-500">Orçamentos atualizados</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-green-600">{{ relatorio.itens_inseridos }}</p>
+                <p class="text-xs text-gray-500">Itens inseridos</p>
+            </div>
+        </div>
+
+        {% if relatorio.erros %}
+        <div class="mt-4">
+            <h3 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
+                Erros ({{ relatorio.erros|length }})
+            </h3>
+            <div class="space-y-1 max-h-60 overflow-y-auto">
+                {% for erro in relatorio.erros %}
+                <div class="text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-3 py-2 rounded">
+                    <strong>Linha {{ erro.linha }}:</strong> [{{ erro.tipo }}] {{ erro.motivo }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

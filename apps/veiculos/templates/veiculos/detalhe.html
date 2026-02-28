@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ veiculo.placa }} — QFrotas{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold font-mono">{{ veiculo.placa }}</h1>
+            <p class="text-gray-500 dark:text-gray-400">{{ veiculo.marca }} {{ veiculo.modelo }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'veiculos:editar' veiculo.placa %}"
+               class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                Editar
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <p class="text-xs text-gray-400">Placa</p>
+                <p class="font-mono font-semibold">{{ veiculo.placa }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Marca</p>
+                <p class="font-semibold">{{ veiculo.marca }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Modelo</p>
+                <p class="font-semibold">{{ veiculo.modelo }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Unidade</p>
+                <p class="font-semibold">{{ veiculo.unidade|default:"-" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="text-lg font-bold mb-4">Manutenções</h2>
+    <div class="space-y-3">
+        {% for m in manutencoes %}
+        <a href="{% url 'manutencoes:detalhe' m.numero_os %}"
+           class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:border-primary transition-colors">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="font-mono font-semibold text-sm">OS {{ m.numero_os }}</span>
+                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                        {% if m.status == 'Executada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                        {% elif m.status == 'Cancelada pelo Usuário' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                        {% elif m.status == 'Em Execução' or m.status == 'Autorizada Execução' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                        {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% endif %}">
+                        {{ m.status }}
+                    </span>
+                </div>
+                <div class="text-right">
+                    <p class="font-semibold">R$ {{ m.valor_total|floatformat:2 }}</p>
+                    <p class="text-xs text-gray-400">{{ m.data_abertura|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <p class="text-gray-400 text-sm">Nenhuma manutenção registrada para este veículo.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

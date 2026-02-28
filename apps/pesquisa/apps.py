@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class PesquisaConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.pesquisa'
+    verbose_name = 'Pesquisa'
