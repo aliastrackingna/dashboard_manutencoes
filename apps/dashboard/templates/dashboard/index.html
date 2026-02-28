@@ -264,7 +264,7 @@ new Chart(document.getElementById('chart-veiculos'), {
 new Chart(document.getElementById('chart-oficinas'), {
     type: 'bar',
     data: {
-        labels: graficos.top_oficinas.map(o => o.oficina),
+        labels: graficos.top_oficinas.map(o => o.oficina.split(/\s*[-=]\s*/)[0].trim()),
         datasets: [{
             data: graficos.top_oficinas.map(o => o.total),
             backgroundColor: '#d97706',
@@ -315,7 +315,7 @@ new Chart(document.getElementById('chart-tipo'), {
             const ds = chart.data.datasets[0];
             const total = ds.data.reduce((a, b) => a + b, 0);
             if (total === 0) return;
-            // Percentual em cada fatia
+            // Percentual e valor em cada fatia
             ds.data.forEach((val, i) => {
                 const meta = chart.getDatasetMeta(0).data[i];
                 const pos = meta.tooltipPosition();
@@ -325,7 +325,9 @@ new Chart(document.getElementById('chart-tipo'), {
                 ctx.font = 'bold 14px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`${pct}%`, pos.x, pos.y);
+                ctx.fillText(`${pct}%`, pos.x, pos.y - 8);
+                ctx.font = '12px sans-serif';
+                ctx.fillText(formatBRL(val), pos.x, pos.y + 8);
                 ctx.restore();
             });
             // Valor total no centro do donut

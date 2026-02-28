@@ -27,8 +27,9 @@ def importar_manutencoes(file):
         placa = str(row.iloc[7]).strip() if len(row) > 7 else ''
         modelo_veiculo = str(row.iloc[9]).strip() if len(row) > 9 else ''
         data_abertura_str = str(row.iloc[10]).strip() if len(row) > 10 else ''
-        data_previsao_str = str(row.iloc[11]).strip() if len(row) > 11 else ''
-        data_encerramento_str = str(row.iloc[13]).strip() if len(row) > 13 else ''
+        data_encerramento_str = str(row.iloc[11]).strip() if len(row) > 11 else ''
+        data_integracao_str = str(row.iloc[12]).strip() if len(row) > 12 else ''
+        data_cancelamento_str = str(row.iloc[13]).strip() if len(row) > 13 else ''
         descricao = str(row.iloc[14]).strip() if len(row) > 14 else ''
         status = str(row.iloc[15]).strip() if len(row) > 15 else ''
         flag_str = str(row.iloc[16]).strip() if len(row) > 16 else ''
@@ -69,9 +70,6 @@ def importar_manutencoes(file):
             continue
 
         data_abertura = timezone.make_aware(data_abertura)
-        data_previsao = parse_datetime_br(data_previsao_str)
-        if data_previsao:
-            data_previsao = timezone.make_aware(data_previsao)
         data_encerramento = parse_datetime_br(data_encerramento_str)
         if data_encerramento:
             data_encerramento = timezone.make_aware(data_encerramento)
@@ -83,7 +81,6 @@ def importar_manutencoes(file):
             'veiculo_id': placa,
             'modelo_veiculo': modelo_veiculo,
             'data_abertura': data_abertura,
-            'data_previsao': data_previsao,
             'data_encerramento': data_encerramento,
             'descricao': descricao,
             'status': status,
