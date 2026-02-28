@@ -3,7 +3,15 @@
 {% block title %}Dashboard — QFrotas{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
+<!-- Cabeçalho de impressão (oculto na tela) -->
+<div id="print-header" class="hidden" style="display:none;">
+    <div style="border-bottom: 2px solid #1e3a5f; padding-bottom: 6px; margin-bottom: 10px;">
+        <h1 style="font-size: 18px; font-weight: bold; color: #1e3a5f; margin: 0;">QFrotas — Relatório de Manutenção</h1>
+        <p id="print-meta" style="font-size: 10px; color: #6b7280; margin: 4px 0 0 0;"></p>
+    </div>
+</div>
+
+<div class="flex items-center justify-between mb-6 dashboard-title-bar">
     <h1 class="text-2xl font-bold">Dashboard</h1>
 
     <div class="flex items-center gap-2">
@@ -379,6 +387,41 @@ new Chart(document.getElementById('chart-setor'), {
 // Period filter
 document.getElementById('periodo-select').addEventListener('change', function() {
     window.location.href = `/dashboard/?periodo=${this.value}`;
+});
+
+// Converter canvas em imagens 2x para impressão nítida
+window.addEventListener('beforeprint', function() {
+    // Preencher cabeçalho de impressão
+    const periodoSelect = document.getElementById('periodo-select');
+    const periodoTexto = periodoSelect.options[periodoSelect.selectedIndex].text;
+    const agora = new Date();
+    const dataFormatada = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+    document.getElementById('print-meta').textContent = 'Impresso em ' + dataFormatada + '  •  Período: ' + periodoTexto;
+
+    // Converter cada canvas em imagem de alta resolução
+    document.querySelectorAll('canvas').forEach(function(canvas) {
+        if (canvas.style.display === 'none') return;
+        const scale = 2;
+        const offscreen = document.createElement('canvas');
+        offscreen.width = canvas.width * scale;
+        offscreen.height = canvas.height * scale;
+        const ctx = offscreen.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.drawImage(canvas, 0, 0);
+        const img = new Image();
+        img.src = offscreen.toDataURL('image/png');
+        img.style.width = '100%';
+        img.classList.add('print-chart-img');
+        canvas.parentNode.insertBefore(img, canvas.nextSibling);
+        canvas.dataset.printHidden = '1';
+    });
+});
+
+window.addEventListener('afterprint', function() {
+    document.querySelectorAll('.print-chart-img').forEach(function(img) { img.remove(); });
+    document.querySelectorAll('canvas[data-print-hidden]').forEach(function(canvas) {
+        delete canvas.dataset.printHidden;
+    });
 });
 </script>
 {% endblock %}
