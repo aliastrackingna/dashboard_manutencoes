@@ -16,8 +16,6 @@ services:
       - ./db.sqlite3:/app/db.sqlite3
     networks:
       - qfrotas-network
-    depends_on:
-      - nginx
 
   nginx:
     image: nginx:alpine
