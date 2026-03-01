@@ -525,17 +525,42 @@ new Chart(document.getElementById('chart-setor'), {
     plugins: [datalabelsPlugin('dl-setor')]
 });
 
-// Scatter Veículos (Feature 5)
+// Scatter Veículos (Feature 5) — gradiente de cor por custo, transparência, eixos limpos
 if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
+    const scatterData = graficos.scatter_veiculos.map(v => ({x: v.qtd_os, y: v.custo_total, placa: v.placa}));
+    const maxCusto = Math.max(...scatterData.map(d => d.y));
+    const minCusto = Math.min(...scatterData.map(d => d.y));
+    const range = maxCusto - minCusto || 1;
+    const maxQtd = Math.max(...scatterData.map(d => d.x));
+
+    // Gradiente roxo: claro (baixo custo) → escuro (alto custo) com 60% opacidade
+    function custoToColor(custo) {
+        const t = (custo - minCusto) / range; // 0..1
+        const r = Math.round(209 - t * 70);   // 209 → 139
+        const g = Math.round(196 - t * 150);   // 196 → 46
+        const b = Math.round(246 - t * 30);    // 246 → 216
+        return `rgba(${r}, ${g}, ${b}, 0.6)`;
+    }
+
+    const scatterColors = scatterData.map(d => custoToColor(d.y));
+
+    // Raio proporcional ao custo (mais caro = círculo maior)
+    const minRadius = 5;
+    const maxRadius = 22;
+    const scatterRadii = scatterData.map(d => {
+        const t = (d.y - minCusto) / range;
+        return minRadius + t * (maxRadius - minRadius);
+    });
+
     new Chart(document.getElementById('chart-scatter'), {
-        type: 'scatter',
+        type: 'bubble',
         data: {
             datasets: [{
                 label: 'Veiculos',
-                data: graficos.scatter_veiculos.map(v => ({x: v.qtd_os, y: v.custo_total, placa: v.placa})),
-                backgroundColor: '#8b5cf6',
-                pointRadius: 6,
-                pointHoverRadius: 9,
+                data: scatterData.map((d, i) => ({x: d.x, y: d.y, r: scatterRadii[i], placa: d.placa})),
+                backgroundColor: scatterColors,
+                borderColor: scatterColors.map(c => c.replace('0.6)', '1)')),
+                borderWidth: 1,
             }]
         },
         options: {
@@ -549,10 +574,61 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
                 },
             },
             scales: {
-                x: { title: { display: true, text: 'Qtd OS' } },
-                y: { title: { display: true, text: 'Custo Total (R$)' }, ticks: { callback: v => formatBRL(v) } },
+                x: {
+                    title: { display: true, text: 'Qtd OS', font: { size: 12 } },
+                    min: 0,
+                    max: maxQtd + 1,
+                    ticks: { stepSize: 1, font: { size: 11 } },
+                    grid: { color: 'rgba(156, 163, 175, 0.15)' },
+                },
+                y: {
+                    title: { display: true, text: 'Custo Total (R$)', font: { size: 12 } },
+                    ticks: { callback: v => formatBRL(v), font: { size: 11 } },
+                    grid: { color: 'rgba(156, 163, 175, 0.15)' },
+                },
             },
         },
+        plugins: [
+            // Legenda do gradiente no canto superior direito
+            {
+                id: 'scatter-legend',
+                afterDraw(chart) {
+                    const ctx = chart.ctx;
+                    const area = chart.chartArea;
+                    const lx = area.right - 110;
+                    const ly = area.top + 8;
+                    const lw = 100;
+                    const lh = 10;
+
+                    // Fundo
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                    ctx.fillRect(lx - 4, ly - 14, lw + 8, lh + 30);
+
+                    // Título
+                    ctx.fillStyle = '#6b7280';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Custo', lx + lw / 2, ly - 2);
+
+                    // Barra de gradiente
+                    const grad = ctx.createLinearGradient(lx, 0, lx + lw, 0);
+                    grad.addColorStop(0, custoToColor(minCusto));
+                    grad.addColorStop(1, custoToColor(maxCusto));
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(lx, ly, lw, lh);
+
+                    // Labels min/max
+                    ctx.fillStyle = '#6b7280';
+                    ctx.font = '9px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('Menor', lx, ly + lh + 10);
+                    ctx.textAlign = 'right';
+                    ctx.fillText('Maior', lx + lw, ly + lh + 10);
+                    ctx.restore();
+                }
+            },
+        ],
     });
 }
 
