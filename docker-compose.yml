@@ -13,7 +13,7 @@ services:
     volumes:
       - staticfiles:/app/staticfiles
       - mediafiles:/app/media
-      - ./db.sqlite3:/app/db.sqlite3
+      - ./data:/app/data  # Mapeia a pasta inteira
     networks:
       - dashboard-network
 
