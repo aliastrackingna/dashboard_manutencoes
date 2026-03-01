@@ -15,11 +15,21 @@
     <h1 class="text-2xl font-bold">Dashboard</h1>
 
     <div class="flex items-center gap-2">
+        <select id="unidade-select" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="">Todas as Unidades</option>
+            <option value="__sem__" {% if unidade_param == '__sem__' %}selected{% endif %}>Sem Unidade</option>
+            {% for u in unidades %}
+            <option value="{{ u }}" {% if unidade_param == u %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+        </select>
         <select id="periodo-select" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="todos" {% if periodo == 'todos' %}selected{% endif %}>Todo o Período</option>
             <option value="anual" {% if periodo == 'anual' %}selected{% endif %}>Ano Corrente</option>
             <option value="30d" {% if periodo == '30d' %}selected{% endif %}>Últimos 30 dias</option>
             <option value="60d" {% if periodo == '60d' %}selected{% endif %}>Últimos 60 dias</option>
             <option value="90d" {% if periodo == '90d' %}selected{% endif %}>Últimos 90 dias</option>
+            <option value="180d" {% if periodo == '180d' %}selected{% endif %}>Últimos 180 dias</option>
+            <option value="360d" {% if periodo == '360d' %}selected{% endif %}>Últimos 360 dias</option>
         </select>
     </div>
 </div>
@@ -117,7 +127,10 @@ const CORES = ['#2563eb','#16a34a','#d97706','#dc2626','#8b5cf6','#06b6d4','#ec4
 
 function drillTo(filtro, valor) {
     const periodo = document.getElementById('periodo-select').value;
-    window.location.href = `/dashboard/lista/?filtro=${filtro}&valor=${encodeURIComponent(valor)}&periodo=${periodo}`;
+    const unidade = document.getElementById('unidade-select').value;
+    let url = `/dashboard/lista/?filtro=${filtro}&valor=${encodeURIComponent(valor)}&periodo=${periodo}`;
+    if (unidade) url += `&unidade=${encodeURIComponent(unidade)}`;
+    window.location.href = url;
 }
 
 // OS por Status (Horizontal Bar — storytelling)
@@ -384,10 +397,16 @@ new Chart(document.getElementById('chart-setor'), {
     plugins: [datalabelsPlugin('dl-setor')]
 });
 
-// Period filter
-document.getElementById('periodo-select').addEventListener('change', function() {
-    window.location.href = `/dashboard/?periodo=${this.value}`;
-});
+// Filters
+function applyFilters() {
+    const periodo = document.getElementById('periodo-select').value;
+    const unidade = document.getElementById('unidade-select').value;
+    let url = `/dashboard/?periodo=${periodo}`;
+    if (unidade) url += `&unidade=${encodeURIComponent(unidade)}`;
+    window.location.href = url;
+}
+document.getElementById('periodo-select').addEventListener('change', applyFilters);
+document.getElementById('unidade-select').addEventListener('change', applyFilters);
 
 // Converter canvas em imagens 2x para impressão nítida
 window.addEventListener('beforeprint', function() {
@@ -396,7 +415,9 @@ window.addEventListener('beforeprint', function() {
     const periodoTexto = periodoSelect.options[periodoSelect.selectedIndex].text;
     const agora = new Date();
     const dataFormatada = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-    document.getElementById('print-meta').textContent = 'Impresso em ' + dataFormatada + '  •  Período: ' + periodoTexto;
+    const unidadeSelect = document.getElementById('unidade-select');
+    const unidadeTexto = unidadeSelect.options[unidadeSelect.selectedIndex].text;
+    document.getElementById('print-meta').textContent = 'Impresso em ' + dataFormatada + '  •  Período: ' + periodoTexto + '  •  Unidade: ' + unidadeTexto;
 
     // Converter cada canvas em imagem de alta resolução
     document.querySelectorAll('canvas').forEach(function(canvas) {

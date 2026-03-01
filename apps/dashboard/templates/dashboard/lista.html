@@ -7,7 +7,7 @@
         <h1 class="text-2xl font-bold">{{ titulo }}</h1>
         <p class="text-sm text-gray-400">{{ page.paginator.count }} resultado(s)</p>
     </div>
-    <a href="{% url 'dashboard:index' %}?periodo={{ periodo }}"
+    <a href="{% url 'dashboard:index' %}?periodo={{ periodo }}{% if unidade_param %}&unidade={{ unidade_param }}{% endif %}"
        class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
         Voltar ao Dashboard
     </a>
@@ -64,12 +64,12 @@
     {% if page.has_other_pages %}
     <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-center gap-2">
         {% if page.has_previous %}
-        <a href="?page={{ page.previous_page_number }}&filtro={{ filtro }}&valor={{ valor }}&periodo={{ periodo }}"
+        <a href="?page={{ page.previous_page_number }}&filtro={{ filtro }}&valor={{ valor }}&periodo={{ periodo }}{% if unidade_param %}&unidade={{ unidade_param }}{% endif %}"
            class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm">&laquo; Anterior</a>
         {% endif %}
         <span class="px-3 py-1 text-sm text-gray-500">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
         {% if page.has_next %}
-        <a href="?page={{ page.next_page_number }}&filtro={{ filtro }}&valor={{ valor }}&periodo={{ periodo }}"
+        <a href="?page={{ page.next_page_number }}&filtro={{ filtro }}&valor={{ valor }}&periodo={{ periodo }}{% if unidade_param %}&unidade={{ unidade_param }}{% endif %}"
            class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm">Próxima &raquo;</a>
         {% endif %}
     </div>

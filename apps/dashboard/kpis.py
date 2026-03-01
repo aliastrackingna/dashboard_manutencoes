@@ -9,7 +9,10 @@ def get_periodo(request):
     periodo = request.GET.get('periodo', 'anual')
     hoje = timezone.now()
 
-    if periodo == '30d':
+    if periodo == 'todos':
+        inicio = None
+        fim = hoje
+    elif periodo == '30d':
         inicio = hoje - timedelta(days=30)
         fim = hoje
     elif periodo == '60d':
@@ -17,6 +20,12 @@ def get_periodo(request):
         fim = hoje
     elif periodo == '90d':
         inicio = hoje - timedelta(days=90)
+        fim = hoje
+    elif periodo == '180d':
+        inicio = hoje - timedelta(days=180)
+        fim = hoje
+    elif periodo == '360d':
+        inicio = hoje - timedelta(days=360)
         fim = hoje
     elif periodo == 'custom':
         try:
@@ -32,8 +41,17 @@ def get_periodo(request):
     return inicio, fim, periodo
 
 
-def calcular_kpis(inicio, fim):
-    qs = Manutencao.objects.filter(data_abertura__gte=inicio, data_abertura__lte=fim)
+def _filtrar_qs(qs, inicio, fim, unidade=None):
+    if inicio is not None:
+        qs = qs.filter(data_abertura__gte=inicio)
+    qs = qs.filter(data_abertura__lte=fim)
+    if unidade is not None:
+        qs = qs.filter(veiculo__unidade=unidade)
+    return qs
+
+
+def calcular_kpis(inicio, fim, unidade=None):
+    qs = _filtrar_qs(Manutencao.objects, inicio, fim, unidade)
 
     total_os = qs.count()
     executadas = qs.filter(status='Executada')
@@ -74,8 +92,8 @@ def calcular_kpis(inicio, fim):
     }
 
 
-def dados_graficos(inicio, fim):
-    qs = Manutencao.objects.filter(data_abertura__gte=inicio, data_abertura__lte=fim)
+def dados_graficos(inicio, fim, unidade=None):
+    qs = _filtrar_qs(Manutencao.objects, inicio, fim, unidade)
 
     # OS por Status
     os_por_status = dict(qs.values_list('status').annotate(c=Count('id')).order_by('-c'))
@@ -102,23 +120,29 @@ def dados_graficos(inicio, fim):
     )
 
     # Top 10 oficinas por volume
+    orc_filter = {'manutencao__data_abertura__lte': fim}
+    if inicio is not None:
+        orc_filter['manutencao__data_abertura__gte'] = inicio
+    if unidade is not None:
+        orc_filter['manutencao__veiculo__unidade'] = unidade
     top_oficinas = list(
-        Orcamento.objects.filter(
-            manutencao__data_abertura__gte=inicio,
-            manutencao__data_abertura__lte=fim,
-        )
+        Orcamento.objects.filter(**orc_filter)
         .values('oficina')
         .annotate(total=Count('id'))
         .order_by('-total')[:10]
     )
 
     # Distribuição Peças vs Serviços (exclui orçamentos recusados/cancelados)
-    itens_qs = ItemOrcamento.objects.filter(
-        orcamento__manutencao__data_abertura__gte=inicio,
-        orcamento__manutencao__data_abertura__lte=fim,
-        orcamento__manutencao__status='Executada',
-        orcamento__status__in=['Escolhido', 'Executado'],
-    )
+    itens_filter = {
+        'orcamento__manutencao__data_abertura__lte': fim,
+        'orcamento__manutencao__status': 'Executada',
+        'orcamento__status__in': ['Escolhido', 'Executado'],
+    }
+    if inicio is not None:
+        itens_filter['orcamento__manutencao__data_abertura__gte'] = inicio
+    if unidade is not None:
+        itens_filter['orcamento__manutencao__veiculo__unidade'] = unidade
+    itens_qs = ItemOrcamento.objects.filter(**itens_filter)
     dist_tipo = dict(itens_qs.values_list('tipo').annotate(t=Sum('total')))
 
     # OS por Setor

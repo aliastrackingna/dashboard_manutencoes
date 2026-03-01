@@ -210,6 +210,77 @@ class GetPeriodoTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+class FiltroUnidadeTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.v_abc = Veiculo.objects.create(placa='UNI0001', marca='VW', modelo='Gol', unidade='ABC')
+        self.v_xyz = Veiculo.objects.create(placa='UNI0002', marca='FIAT', modelo='Uno', unidade='XYZ')
+        self.v_sem = Veiculo.objects.create(placa='UNI0003', marca='FORD', modelo='Ka', unidade='')
+        dt_abertura = timezone.make_aware(datetime(2026, 2, 10))
+        Manutencao.objects.create(numero_os='OS-U1', veiculo=self.v_abc,
+            data_abertura=dt_abertura, status='Executada', valor_total=Decimal('100'))
+        Manutencao.objects.create(numero_os='OS-U2', veiculo=self.v_xyz,
+            data_abertura=dt_abertura, status='Executada', valor_total=Decimal('200'))
+        Manutencao.objects.create(numero_os='OS-U3', veiculo=self.v_sem,
+            data_abertura=dt_abertura, status='Executada', valor_total=Decimal('300'))
+
+    def test_dashboard_sem_filtro_retorna_tudo(self):
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['kpis']['total_os'], 3)
+
+    def test_dashboard_filtro_unidade(self):
+        response = self.client.get(reverse('dashboard:index'), {'unidade': 'ABC'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['kpis']['total_os'], 1)
+
+    def test_dashboard_filtro_sem_unidade(self):
+        response = self.client.get(reverse('dashboard:index'), {'unidade': '__sem__'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['kpis']['total_os'], 1)
+
+    def test_lista_drilldown_filtro_unidade(self):
+        response = self.client.get(reverse('dashboard:lista'), {'unidade': 'XYZ'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page'].paginator.count, 1)
+
+    def test_lista_drilldown_filtro_sem_unidade(self):
+        response = self.client.get(reverse('dashboard:lista'), {'unidade': '__sem__'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page'].paginator.count, 1)
+
+    def test_api_kpis_filtro_unidade(self):
+        response = self.client.get(reverse('dashboard:api_kpis'), {'unidade': 'ABC'})
+        data = response.json()
+        self.assertEqual(data['total_os'], 1)
+
+    def test_api_graficos_filtro_unidade(self):
+        response = self.client.get(reverse('dashboard:api_graficos'), {'unidade': 'ABC'})
+        data = response.json()
+        self.assertEqual(sum(data['os_por_status'].values()), 1)
+
+    def test_unidades_no_contexto(self):
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertIn('unidades', response.context)
+        self.assertIn('ABC', response.context['unidades'])
+        self.assertIn('XYZ', response.context['unidades'])
+        self.assertNotIn('', response.context['unidades'])
+
+    def test_kpis_direto_com_unidade(self):
+        inicio = timezone.make_aware(datetime(2026, 1, 1))
+        fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+        kpis = calcular_kpis(inicio, fim, unidade='ABC')
+        self.assertEqual(kpis['total_os'], 1)
+        self.assertAlmostEqual(kpis['valor_total_executado'], 100.0)
+
+    def test_kpis_direto_sem_unidade(self):
+        inicio = timezone.make_aware(datetime(2026, 1, 1))
+        fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+        kpis = calcular_kpis(inicio, fim, unidade='')
+        self.assertEqual(kpis['total_os'], 1)
+        self.assertAlmostEqual(kpis['valor_total_executado'], 300.0)
+
+
 class DadosGraficosInsightsTest(TestCase):
     def setUp(self):
         self.v = Veiculo.objects.create(placa='INS0001', marca='VW', modelo='Gol')
