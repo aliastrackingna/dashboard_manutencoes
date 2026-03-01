@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Frotas Dashboard — a Django 6.0 fleet maintenance dashboard for tracking vehicles, maintenance orders (OS), budgets, and KPIs. All code and UI text are in Brazilian Portuguese.
+Manutenção Frota Dashboard — a Django 6.0 fleet maintenance dashboard for tracking vehicles, maintenance orders (OS), budgets, and KPIs. All code and UI text are in Brazilian Portuguese.
 
 ## Commands
 

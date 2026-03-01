@@ -1,4 +1,4 @@
-# AGENTS.md - Frotas Dashboard
+# AGENTS.md - Manutenção Frota Dashboard
 
 ## Project Overview
 - **Framework**: Django 6.0

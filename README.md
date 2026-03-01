@@ -1,4 +1,4 @@
-# QFrotas Dashboard
+# QManutenção Frota Dashboard
 
 Sistema de gestão de frotas com Dashboard Django.
 
