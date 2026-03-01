@@ -13,6 +13,11 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 # Pega os hosts da variável de ambiente
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
 
+# Adicionar hosts do Docker em modo debug
+if DEBUG:
+    ALLOWED_HOSTS.extend(['dashboard-web', 'dashboard-nginx', 'web'])
+    ALLOWED_HOSTS = list(set(ALLOWED_HOSTS))
+
 # Gera as origens para HTTP e HTTPS para evitar erros de protocolo
 CSRF_TRUSTED_ORIGINS = []
 CORS_ORIGINS_WHITELIST = []
@@ -21,6 +26,11 @@ for host in ALLOWED_HOSTS:
     CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
     CORS_ORIGINS_WHITELIST.append(f"https://{host}")
     CORS_ORIGINS_WHITELIST.append(f"http://{host}")
+
+# Adicionar localhost para Docker
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.append('http://localhost:8000')
+    CSRF_TRUSTED_ORIGINS.append('http://localhost')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -113,10 +123,10 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
