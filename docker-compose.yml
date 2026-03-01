@@ -1,10 +1,10 @@
 services:
-  web:
+  dashboard_web:
     build:
       context: .
       dockerfile: Dockerfile
-    image: qfrotas-dashboard
-    container_name: qfrotas-web
+    image: dashboard-dashboard
+    container_name: dashboard-web
     restart: unless-stopped
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-change-in-production}
@@ -15,25 +15,24 @@ services:
       - mediafiles:/app/media
       - ./db.sqlite3:/app/db.sqlite3
     networks:
-      - qfrotas-network
+      - dashboard-network
 
-  nginx:
-    image: nginx:alpine
-    container_name: qfrotas-nginx
+  dashboard_nginx:
+    build: ./nginx
+    container_name: dashboard-nginx
     restart: unless-stopped
     ports:
       - "8000:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - staticfiles:/app/staticfiles:ro
       - mediafiles:/app/media:ro
     networks:
-      - qfrotas-network
+      - dashboard-network
     depends_on:
-      - web
+      - dashboard_web
 
 networks:
-  qfrotas-network:
+  dashboard-network:
     driver: bridge
 
 volumes:
