@@ -148,7 +148,7 @@
 
     <!-- Evolução Mensal -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">Evolução Mensal de OS</h3>
+        <h3 class="text-sm font-semibold mb-1">Evolucao Mensal: OS e Valor (Pecas + Servicos)</h3>
         {% if graficos.evolucao_insight %}
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.evolucao_insight }}</p>
         {% endif %}
@@ -189,12 +189,6 @@
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.setor_insight }}</p>
         {% endif %}
         <canvas id="chart-setor" height="280"></canvas>
-    </div>
-
-    <!-- Evolução Peças vs Serviços -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">Evolucao Mensal: Pecas vs Servicos</h3>
-        <canvas id="chart-evolucao-tipo" height="250"></canvas>
     </div>
 
     <!-- Scatter Veículos -->
@@ -307,26 +301,29 @@ function formatBRL(v) {
     return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
-// Evolução Mensal + Média Móvel (Feature 7)
+// Evolução Mensal: barras (Qtd OS) à esquerda + linha (Valor Peças+Serviços) à direita
 const evolucaoDatasets = [{
     type: 'bar',
+    label: 'Qtd OS',
     data: graficos.evolucao_mensal.data,
     backgroundColor: '#2563eb',
     borderRadius: 4,
+    yAxisID: 'y',
     order: 2,
 }];
-if (graficos.evolucao_mensal.media_movel && graficos.evolucao_mensal.media_movel.some(v => v !== null)) {
+if (graficos.evolucao_mensal.valor_total && graficos.evolucao_mensal.valor_total.some(v => v > 0)) {
     evolucaoDatasets.push({
         type: 'line',
-        label: 'Media Movel (3m)',
-        data: graficos.evolucao_mensal.media_movel,
-        borderColor: '#dc2626',
+        label: 'Valor (Pecas + Servicos)',
+        data: graficos.evolucao_mensal.valor_total,
+        borderColor: '#16a34a',
+        backgroundColor: 'rgba(22, 163, 74, 0.1)',
         borderWidth: 2,
-        pointRadius: 3,
+        pointRadius: 4,
         fill: false,
         tension: 0.3,
+        yAxisID: 'y1',
         order: 1,
-        spanGaps: true,
     });
 }
 new Chart(document.getElementById('chart-evolucao'), {
@@ -337,10 +334,31 @@ new Chart(document.getElementById('chart-evolucao'), {
     },
     options: {
         responsive: true,
-        plugins: { legend: { display: evolucaoDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } } },
+        plugins: {
+            legend: { display: evolucaoDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        if (ctx.datasetIndex === 1) return ctx.dataset.label + ': ' + formatBRL(ctx.raw);
+                        return ctx.dataset.label + ': ' + ctx.raw;
+                    }
+                }
+            },
+        },
         scales: {
-            y: { display: false },
-            x: { ticks: { font: { size: 13 } } },
+            y: {
+                position: 'left',
+                grid: { display: false },
+                ticks: { font: { size: 11 } },
+                title: { display: true, text: 'Qtd OS', font: { size: 11 } },
+            },
+            y1: {
+                position: 'right',
+                grid: { display: false },
+                ticks: { font: { size: 11 }, callback: v => formatBRL(v) },
+                title: { display: true, text: 'Valor (R$)', font: { size: 11 } },
+            },
+            x: { ticks: { font: { size: 13 } }, grid: { display: false } },
         },
         onClick: (e, els) => {
             if (els.length > 0) {
@@ -506,45 +524,6 @@ new Chart(document.getElementById('chart-setor'), {
     },
     plugins: [datalabelsPlugin('dl-setor')]
 });
-
-// Evolução Peças vs Serviços (Feature 4 — stacked area)
-if (graficos.evolucao_tipo && graficos.evolucao_tipo.labels.length > 0) {
-    new Chart(document.getElementById('chart-evolucao-tipo'), {
-        type: 'line',
-        data: {
-            labels: graficos.evolucao_tipo.labels,
-            datasets: [
-                {
-                    label: 'Pecas',
-                    data: graficos.evolucao_tipo.pca,
-                    backgroundColor: 'rgba(37, 99, 235, 0.3)',
-                    borderColor: '#2563eb',
-                    fill: true,
-                    tension: 0.3,
-                },
-                {
-                    label: 'Servicos',
-                    data: graficos.evolucao_tipo.srv,
-                    backgroundColor: 'rgba(22, 163, 74, 0.3)',
-                    borderColor: '#16a34a',
-                    fill: true,
-                    tension: 0.3,
-                },
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
-                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatBRL(ctx.raw)}` } },
-            },
-            scales: {
-                x: { ticks: { font: { size: 11 } } },
-                y: { stacked: true, ticks: { callback: v => formatBRL(v) } },
-            },
-        },
-    });
-}
 
 // Scatter Veículos (Feature 5)
 if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {

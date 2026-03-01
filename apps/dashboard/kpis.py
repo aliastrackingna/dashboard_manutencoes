@@ -228,7 +228,12 @@ def dados_graficos(inicio, fim, unidade=None):
         'labels': list(meses_tipo.keys()),
         'pca': [v['PCA'] for v in meses_tipo.values()],
         'srv': [v['SRV'] for v in meses_tipo.values()],
+        'total': [v['PCA'] + v['SRV'] for v in meses_tipo.values()],
     }
+
+    # Valor total peças+serviços alinhado com evolucao_mensal (para gráfico combinado)
+    valor_por_mes = {label: meses_tipo.get(label, {'PCA': 0, 'SRV': 0}) for label in evolucao_mensal['labels']}
+    evolucao_mensal['valor_total'] = [v['PCA'] + v['SRV'] for v in valor_por_mes.values()]
 
     # Feature 5: Scatter plot outliers por veículo
     scatter_veiculos = list(
