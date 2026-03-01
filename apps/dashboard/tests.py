@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from apps.veiculos.models import Veiculo
 from apps.manutencoes.models import Manutencao, Orcamento, ItemOrcamento
-from .kpis import calcular_kpis, dados_graficos
+from .kpis import calcular_kpis, dados_graficos, _periodo_anterior
 
 
 class KPIsTest(TestCase):
@@ -327,3 +327,72 @@ class DadosGraficosInsightsTest(TestCase):
         self.assertEqual(graficos['oficinas_insight'], '')
         self.assertEqual(graficos['tipo_insight'], '')
         self.assertEqual(graficos['setor_insight'], '')
+
+
+class PeriodoAnteriorTest(TestCase):
+    def test_periodo_anterior_calculo(self):
+        inicio = timezone.make_aware(datetime(2026, 3, 1))
+        fim = timezone.make_aware(datetime(2026, 3, 31, 23, 59, 59))
+        ant_inicio, ant_fim = _periodo_anterior(inicio, fim)
+        # Duração ~31 dias, anterior deveria terminar em inicio
+        self.assertEqual(ant_fim, inicio)
+        self.assertTrue(ant_inicio < ant_fim)
+
+    def test_periodo_anterior_none_quando_todos(self):
+        ant_inicio, ant_fim = _periodo_anterior(None, timezone.now())
+        self.assertIsNone(ant_inicio)
+        self.assertIsNone(ant_fim)
+
+
+class TendenciasTest(TestCase):
+    def setUp(self):
+        self.v = Veiculo.objects.create(placa='TND0001', marca='VW', modelo='Gol')
+
+    def test_tendencias_com_dados_em_dois_periodos(self):
+        # Período anterior: jan
+        Manutencao.objects.create(
+            numero_os='OS-T1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 1, 15)),
+            status='Executada', valor_total=Decimal('1000'),
+        )
+        # Período atual: fev
+        Manutencao.objects.create(
+            numero_os='OS-T2', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 15)),
+            status='Executada', valor_total=Decimal('2000'),
+        )
+        inicio = timezone.make_aware(datetime(2026, 2, 1))
+        fim = timezone.make_aware(datetime(2026, 2, 28, 23, 59, 59))
+        kpis = calcular_kpis(inicio, fim)
+        self.assertIsNotNone(kpis['tendencias'])
+        self.assertEqual(kpis['tendencias']['valor_total_executado'], 100.0)
+
+    def test_tendencia_none_quando_periodo_todos(self):
+        kpis = calcular_kpis(None, timezone.now())
+        self.assertIsNone(kpis['tendencias'])
+
+
+class CustoPorVeiculoTest(TestCase):
+    def setUp(self):
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_custo_por_veiculo_multiplos(self):
+        v1 = Veiculo.objects.create(placa='CPV0001', marca='VW', modelo='Gol')
+        v2 = Veiculo.objects.create(placa='CPV0002', marca='FIAT', modelo='Uno')
+        Manutencao.objects.create(
+            numero_os='OS-C1', veiculo=v1,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('1000'),
+        )
+        Manutencao.objects.create(
+            numero_os='OS-C2', veiculo=v2,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('3000'),
+        )
+        kpis = calcular_kpis(self.inicio, self.fim)
+        self.assertAlmostEqual(kpis['custo_por_veiculo'], 2000.0)
+
+    def test_custo_por_veiculo_sem_dados(self):
+        kpis = calcular_kpis(self.inicio, self.fim)
+        self.assertEqual(kpis['custo_por_veiculo'], 0)

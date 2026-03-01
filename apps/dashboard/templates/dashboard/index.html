@@ -35,33 +35,99 @@
 </div>
 
 <!-- KPI Cards -->
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-8">
+    {% with t=kpis.tendencias %}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-xs text-gray-400 mb-1">Total de OS</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Total de OS</p>
+            {% if t and t.total_os != None %}
+            <span class="text-xs font-semibold {% if t.total_os > 0 %}text-red-500{% elif t.total_os < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.total_os > 0 %}&#9650;{% elif t.total_os < 0 %}&#9660;{% endif %} {{ t.total_os }}%
+            </span>
+            {% endif %}
+        </div>
         <p class="text-2xl font-bold text-primary">{{ kpis.total_os }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-xs text-gray-400 mb-1">Total Executado</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Total Executado</p>
+            {% if t and t.valor_total_executado != None %}
+            <span class="text-xs font-semibold {% if t.valor_total_executado > 0 %}text-red-500{% elif t.valor_total_executado < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.valor_total_executado > 0 %}&#9650;{% elif t.valor_total_executado < 0 %}&#9660;{% endif %} {{ t.valor_total_executado }}%
+            </span>
+            {% endif %}
+        </div>
         <p class="text-2xl font-bold text-green-600">R$ {{ kpis.valor_total_executado|floatformat:2 }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-xs text-gray-400 mb-1">Valor Total Aprovado</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Valor Total Aprovado</p>
+            {% if t and t.valor_aprovado_executado != None %}
+            <span class="text-xs font-semibold {% if t.valor_aprovado_executado > 0 %}text-red-500{% elif t.valor_aprovado_executado < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.valor_aprovado_executado > 0 %}&#9650;{% elif t.valor_aprovado_executado < 0 %}&#9660;{% endif %} {{ t.valor_aprovado_executado }}%
+            </span>
+            {% endif %}
+        </div>
         <p class="text-2xl font-bold text-blue-600">R$ {{ kpis.valor_aprovado_executado|floatformat:2 }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-xs text-gray-400 mb-1">Ticket Médio</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Ticket Medio</p>
+            {% if t and t.ticket_medio != None %}
+            <span class="text-xs font-semibold {% if t.ticket_medio > 0 %}text-red-500{% elif t.ticket_medio < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.ticket_medio > 0 %}&#9650;{% elif t.ticket_medio < 0 %}&#9660;{% endif %} {{ t.ticket_medio }}%
+            </span>
+            {% endif %}
+        </div>
         <p class="text-2xl font-bold">R$ {{ kpis.ticket_medio|floatformat:2 }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-xs text-gray-400 mb-1">OS Dentro do Prazo</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">OS Dentro do Prazo</p>
+            {% if t and t.pct_prazo != None %}
+            <span class="text-xs font-semibold {% if t.pct_prazo > 0 %}text-green-500{% elif t.pct_prazo < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+                {% if t.pct_prazo > 0 %}&#9650;{% elif t.pct_prazo < 0 %}&#9660;{% endif %} {{ t.pct_prazo }}%
+            </span>
+            {% endif %}
+        </div>
         <p class="text-2xl font-bold {% if kpis.pct_prazo >= 80 %}text-green-600{% elif kpis.pct_prazo >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
             {{ kpis.pct_prazo }}%
         </p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <p class="text-xs text-gray-400 mb-1">Tempo Médio Resolução</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Tempo Medio Resolucao</p>
+            {% if t and t.tempo_medio_dias != None %}
+            <span class="text-xs font-semibold {% if t.tempo_medio_dias > 0 %}text-red-500{% elif t.tempo_medio_dias < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.tempo_medio_dias > 0 %}&#9650;{% elif t.tempo_medio_dias < 0 %}&#9660;{% endif %} {{ t.tempo_medio_dias }}%
+            </span>
+            {% endif %}
+        </div>
         <p class="text-2xl font-bold">{{ kpis.tempo_medio_dias }} dias</p>
     </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Executadas</p>
+            {% if t and t.total_executadas != None %}
+            <span class="text-xs font-semibold {% if t.total_executadas > 0 %}text-green-500{% elif t.total_executadas < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+                {% if t.total_executadas > 0 %}&#9650;{% elif t.total_executadas < 0 %}&#9660;{% endif %} {{ t.total_executadas }}%
+            </span>
+            {% endif %}
+        </div>
+        <p class="text-2xl font-bold">{{ kpis.total_executadas }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400">Custo/Veiculo</p>
+            {% if t and t.custo_por_veiculo != None %}
+            <span class="text-xs font-semibold {% if t.custo_por_veiculo > 0 %}text-red-500{% elif t.custo_por_veiculo < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.custo_por_veiculo > 0 %}&#9650;{% elif t.custo_por_veiculo < 0 %}&#9660;{% endif %} {{ t.custo_por_veiculo }}%
+            </span>
+            {% endif %}
+        </div>
+        <p class="text-2xl font-bold">R$ {{ kpis.custo_por_veiculo|floatformat:2 }}</p>
+    </div>
+    {% endwith %}
 </div>
 
 <!-- Charts -->

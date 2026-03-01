@@ -50,7 +50,16 @@ def _filtrar_qs(qs, inicio, fim, unidade=None):
     return qs
 
 
-def calcular_kpis(inicio, fim, unidade=None):
+def _periodo_anterior(inicio, fim):
+    """Calcula o período equivalente anterior (mesma duração, imediatamente antes)."""
+    if inicio is None:
+        return None, None
+    duracao = fim - inicio
+    return inicio - duracao, inicio
+
+
+def _calcular_kpis_raw(inicio, fim, unidade=None):
+    """Calcula KPIs sem tendências (usado internamente para comparação)."""
     qs = _filtrar_qs(Manutencao.objects, inicio, fim, unidade)
 
     total_os = qs.count()
@@ -59,12 +68,10 @@ def calcular_kpis(inicio, fim, unidade=None):
     total_executadas = executadas.count()
     ticket_medio = valor_total_executado / total_executadas if total_executadas > 0 else Decimal('0')
 
-    # Aprovado + Executado (OS autorizadas, em execução ou executadas)
     aprovado_executado = qs.filter(
         status__in=['Autorizada Execução', 'Em Execução', 'Executada']
     ).aggregate(s=Sum('valor_total'))['s'] or Decimal('0')
 
-    # OS dentro do prazo
     com_prazo = executadas.filter(
         data_encerramento__isnull=False,
         data_previsao__isnull=False,
@@ -73,13 +80,16 @@ def calcular_kpis(inicio, fim, unidade=None):
     total_com_prazo = com_prazo.count()
     pct_prazo = round(dentro_prazo / total_com_prazo * 100, 1) if total_com_prazo > 0 else 0
 
-    # Tempo médio de resolução
     resolvidas = executadas.filter(data_encerramento__isnull=False)
     if resolvidas.exists():
         tempos = [(m.data_encerramento - m.data_abertura).total_seconds() / 86400 for m in resolvidas]
         tempo_medio = round(sum(tempos) / len(tempos), 1)
     else:
         tempo_medio = 0
+
+    # Custo por veículo
+    veiculos_distintos = executadas.values('veiculo').distinct().count()
+    custo_por_veiculo = float(valor_total_executado / veiculos_distintos) if veiculos_distintos > 0 else 0
 
     return {
         'total_os': total_os,
@@ -89,7 +99,32 @@ def calcular_kpis(inicio, fim, unidade=None):
         'pct_prazo': pct_prazo,
         'tempo_medio_dias': tempo_medio,
         'total_executadas': total_executadas,
+        'custo_por_veiculo': custo_por_veiculo,
     }
+
+
+def calcular_kpis(inicio, fim, unidade=None):
+    kpis = _calcular_kpis_raw(inicio, fim, unidade)
+
+    # Tendências (variação % vs período anterior)
+    ant_inicio, ant_fim = _periodo_anterior(inicio, fim)
+    if ant_inicio is not None:
+        ant = _calcular_kpis_raw(ant_inicio, ant_fim, unidade)
+        tendencias = {}
+        for chave in ['total_os', 'valor_total_executado', 'valor_aprovado_executado',
+                       'ticket_medio', 'pct_prazo', 'tempo_medio_dias', 'total_executadas',
+                       'custo_por_veiculo']:
+            atual = kpis[chave]
+            anterior = ant[chave]
+            if anterior and anterior != 0:
+                tendencias[chave] = round((atual - anterior) / abs(anterior) * 100, 1)
+            else:
+                tendencias[chave] = None
+        kpis['tendencias'] = tendencias
+    else:
+        kpis['tendencias'] = None
+
+    return kpis
 
 
 def dados_graficos(inicio, fim, unidade=None):
