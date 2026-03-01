@@ -21,4 +21,4 @@ USER django-user
 EXPOSE 8000
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--log-level", "debug", "--access-logfile", "--error-logfile -", "--workers", "2", "--timeout", "120", "config.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000",  "--workers", "2", "--timeout", "120", "config.wsgi:application"]
