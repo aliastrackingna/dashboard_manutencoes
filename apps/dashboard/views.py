@@ -1,6 +1,10 @@
+import json
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.utils.safestring import mark_safe
+
 from apps.manutencoes.models import Manutencao
 from apps.veiculos.models import Veiculo
 from .kpis import get_periodo, calcular_kpis, dados_graficos
@@ -36,6 +40,7 @@ def index(request):
     return render(request, 'dashboard/index.html', {
         'kpis': kpis,
         'graficos': graficos,
+        'graficos_json': mark_safe(json.dumps(graficos)),
         'periodo': periodo,
         'inicio': inicio,
         'fim': fim,

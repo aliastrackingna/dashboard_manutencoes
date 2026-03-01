@@ -186,7 +186,7 @@ def dados_graficos(inicio, fim, unidade=None):
     top_oficinas = list(
         Orcamento.objects.filter(**orc_filter)
         .values('oficina')
-        .annotate(total=Count('id'))
+        .annotate(total=Count('id'), valor_total=Sum('valor'), valor_medio=Avg('valor'))
         .order_by('-total')[:10]
     )
 
@@ -210,6 +210,47 @@ def dados_graficos(inicio, fim, unidade=None):
         .annotate(c=Count('id'))
         .order_by('-c')
     )
+
+    # Feature 4: Evolução mensal peças vs serviços
+    evolucao_tipo_qs = list(
+        itens_qs.annotate(mes=TruncMonth('orcamento__manutencao__data_abertura'))
+        .values('mes', 'tipo')
+        .annotate(total=Sum('total'))
+        .order_by('mes')
+    )
+    meses_tipo = {}
+    for item in evolucao_tipo_qs:
+        label = item['mes'].strftime('%b/%Y')
+        if label not in meses_tipo:
+            meses_tipo[label] = {'PCA': 0, 'SRV': 0}
+        meses_tipo[label][item['tipo']] = float(item['total'])
+    evolucao_tipo = {
+        'labels': list(meses_tipo.keys()),
+        'pca': [v['PCA'] for v in meses_tipo.values()],
+        'srv': [v['SRV'] for v in meses_tipo.values()],
+    }
+
+    # Feature 5: Scatter plot outliers por veículo
+    scatter_veiculos = list(
+        qs.filter(status='Executada')
+        .values('veiculo__placa')
+        .annotate(custo_total=Sum('valor_total'), qtd_os=Count('id'))
+        .order_by('-custo_total')
+    )
+    scatter_veiculos = [
+        {'placa': s['veiculo__placa'], 'custo_total': float(s['custo_total']), 'qtd_os': s['qtd_os']}
+        for s in scatter_veiculos
+    ]
+
+    # Feature 7: Média móvel 3 meses na evolução mensal
+    dados_evolucao = evolucao_mensal['data']
+    media_movel = []
+    for i in range(len(dados_evolucao)):
+        if i < 2:
+            media_movel.append(None)
+        else:
+            media_movel.append(round(sum(dados_evolucao[i-2:i+1]) / 3, 1))
+    evolucao_mensal['media_movel'] = media_movel
 
     # --- Insights dinâmicos ---
 
@@ -276,7 +317,8 @@ def dados_graficos(inicio, fim, unidade=None):
         ],
         'veiculos_insight': veiculos_insight,
         'top_oficinas': [
-            {'oficina': o['oficina'][:40], 'total': o['total']}
+            {'oficina': o['oficina'][:40], 'total': o['total'],
+             'valor_medio': round(float(o['valor_medio']), 2) if o['valor_medio'] else 0}
             for o in top_oficinas
         ],
         'oficinas_insight': oficinas_insight,
@@ -284,6 +326,8 @@ def dados_graficos(inicio, fim, unidade=None):
         'tipo_insight': tipo_insight,
         'os_por_setor': os_por_setor,
         'setor_insight': setor_insight,
+        'evolucao_tipo': evolucao_tipo,
+        'scatter_veiculos': scatter_veiculos,
     }
 
     cache.set(chave, resultado, CACHE_TIMEOUT)

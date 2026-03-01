@@ -440,3 +440,128 @@ class CacheKPIsTest(TestCase):
         # Limpar cache (como faz o pipeline)
         cache.clear()
         self.assertIsNone(cache.get(chave))
+
+
+class EvolucaoTipoTest(TestCase):
+    """Feature 4: Evolução mensal peças vs serviços."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.v = Veiculo.objects.create(placa='EVT0001', marca='VW', modelo='Gol')
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_evolucao_tipo_com_itens(self):
+        m1 = Manutencao.objects.create(numero_os='OS-ET1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 1, 15)), status='Executada')
+        orc1 = Orcamento.objects.create(manutencao=m1, codigo_orcamento=8001,
+            data=datetime(2026, 1, 16).date(), oficina='OFC1', valor=Decimal('500'), status='Escolhido')
+        ItemOrcamento.objects.create(orcamento=orc1, tipo='PCA', descricao='FILTRO',
+            valor_unit=Decimal('100'), qtd=Decimal('2'), total=Decimal('200'))
+        ItemOrcamento.objects.create(orcamento=orc1, tipo='SRV', descricao='MAO DE OBRA',
+            valor_unit=Decimal('150'), qtd=Decimal('1'), total=Decimal('150'))
+
+        m2 = Manutencao.objects.create(numero_os='OS-ET2', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 15)), status='Executada')
+        orc2 = Orcamento.objects.create(manutencao=m2, codigo_orcamento=8002,
+            data=datetime(2026, 2, 16).date(), oficina='OFC1', valor=Decimal('300'), status='Executado')
+        ItemOrcamento.objects.create(orcamento=orc2, tipo='PCA', descricao='OLEO',
+            valor_unit=Decimal('80'), qtd=Decimal('1'), total=Decimal('80'))
+
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertEqual(len(graficos['evolucao_tipo']['labels']), 2)
+        self.assertEqual(len(graficos['evolucao_tipo']['pca']), 2)
+        self.assertAlmostEqual(graficos['evolucao_tipo']['pca'][0], 200.0)
+
+
+class ScatterVeiculosTest(TestCase):
+    """Feature 5: Scatter plot outliers por veículo."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_scatter_com_multiplos_veiculos(self):
+        v1 = Veiculo.objects.create(placa='SCA0001', marca='VW', modelo='Gol')
+        v2 = Veiculo.objects.create(placa='SCA0002', marca='FIAT', modelo='Uno')
+        Manutencao.objects.create(numero_os='OS-SC1', veiculo=v1,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('1000'))
+        Manutencao.objects.create(numero_os='OS-SC2', veiculo=v1,
+            data_abertura=timezone.make_aware(datetime(2026, 3, 10)),
+            status='Executada', valor_total=Decimal('2000'))
+        Manutencao.objects.create(numero_os='OS-SC3', veiculo=v2,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('500'))
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertEqual(len(graficos['scatter_veiculos']), 2)
+        # v1 tem maior custo, deve ser primeiro
+        self.assertEqual(graficos['scatter_veiculos'][0]['placa'], 'SCA0001')
+        self.assertEqual(graficos['scatter_veiculos'][0]['qtd_os'], 2)
+        self.assertAlmostEqual(graficos['scatter_veiculos'][0]['custo_total'], 3000.0)
+
+
+class ValorMedioOficinaTest(TestCase):
+    """Feature 6: Valor médio por oficina."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.v = Veiculo.objects.create(placa='VMO0001', marca='VW', modelo='Gol')
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_valor_medio_presente(self):
+        m = Manutencao.objects.create(numero_os='OS-VM1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 1)), status='Executada')
+        Orcamento.objects.create(manutencao=m, codigo_orcamento=9001,
+            data=datetime(2026, 2, 2).date(), oficina='OFICINA TESTE', valor=Decimal('500'), status='Escolhido')
+        Orcamento.objects.create(manutencao=m, codigo_orcamento=9002,
+            data=datetime(2026, 2, 3).date(), oficina='OFICINA TESTE', valor=Decimal('300'), status='Recusado')
+        graficos = dados_graficos(self.inicio, self.fim)
+        self.assertTrue(len(graficos['top_oficinas']) > 0)
+        ofc = graficos['top_oficinas'][0]
+        self.assertIn('valor_medio', ofc)
+        self.assertAlmostEqual(ofc['valor_medio'], 400.0)
+
+
+class MediaMovelTest(TestCase):
+    """Feature 7: Média móvel 3 meses na evolução."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.v = Veiculo.objects.create(placa='MMA0001', marca='VW', modelo='Gol')
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_media_movel_com_dados_suficientes(self):
+        for i, m in enumerate([1, 2, 3, 4], 1):
+            Manutencao.objects.create(
+                numero_os=f'OS-MM{i}', veiculo=self.v,
+                data_abertura=timezone.make_aware(datetime(2026, m, 15)),
+                status='Executada',
+            )
+        # Adicionar mais uma OS em março para variação
+        Manutencao.objects.create(
+            numero_os='OS-MM5', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 3, 20)),
+            status='Executada',
+        )
+        graficos = dados_graficos(self.inicio, self.fim)
+        mm = graficos['evolucao_mensal']['media_movel']
+        self.assertEqual(len(mm), 4)
+        self.assertIsNone(mm[0])
+        self.assertIsNone(mm[1])
+        # Mês 3 (index 2): média de [1, 1, 2] = 1.3
+        self.assertAlmostEqual(mm[2], 1.3, places=1)
+
+    def test_media_movel_dados_insuficientes(self):
+        Manutencao.objects.create(
+            numero_os='OS-MMI1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 1, 15)),
+            status='Executada',
+        )
+        graficos = dados_graficos(self.inicio, self.fim)
+        mm = graficos['evolucao_mensal']['media_movel']
+        self.assertEqual(len(mm), 1)
+        self.assertIsNone(mm[0])
