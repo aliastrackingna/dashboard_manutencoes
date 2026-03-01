@@ -565,3 +565,86 @@ class MediaMovelTest(TestCase):
         mm = graficos['evolucao_mensal']['media_movel']
         self.assertEqual(len(mm), 1)
         self.assertIsNone(mm[0])
+
+
+class ThresholdsTest(TestCase):
+    """Feature 8: Thresholds visuais nos KPI cards."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.client = Client()
+        self.v = Veiculo.objects.create(placa='THR0001', marca='VW', modelo='Gol')
+        Manutencao.objects.create(
+            numero_os='OS-TH1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('5000'),
+        )
+
+    def test_thresholds_no_contexto(self):
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertIn('thresholds', response.context)
+
+    def test_threshold_borda_vermelha_quando_acima(self):
+        from apps.configuracoes.models import KPIConfig
+        # ticket_medio é menor=melhor, valor atual = 5000, threshold = 1000 → vermelho
+        KPIConfig.objects.create(chave='ticket_medio', descricao='Ticket', valor=Decimal('1000'))
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(response.context['thresholds']['ticket_medio'], 'border-red-500')
+
+    def test_threshold_borda_verde_quando_abaixo(self):
+        from apps.configuracoes.models import KPIConfig
+        # ticket_medio é menor=melhor, valor atual = 5000, threshold = 10000 → verde
+        KPIConfig.objects.create(chave='ticket_medio', descricao='Ticket', valor=Decimal('10000'))
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(response.context['thresholds']['ticket_medio'], 'border-green-500')
+
+
+class ExportarCSVTest(TestCase):
+    """Feature 9: Exportação de dados para CSV."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.client = Client()
+        self.v = Veiculo.objects.create(placa='EXP0001', marca='VW', modelo='Gol', unidade='ABC')
+        Manutencao.objects.create(
+            numero_os='OS-EX1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('500'),
+        )
+
+    def test_csv_content_type(self):
+        response = self.client.get(reverse('dashboard:exportar_csv'))
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertIn('attachment', response['Content-Disposition'])
+
+    def test_csv_contem_dados(self):
+        response = self.client.get(reverse('dashboard:exportar_csv'))
+        content = response.content.decode('utf-8')
+        self.assertIn('OS-EX1', content)
+        self.assertIn('EXP0001', content)
+
+    def test_csv_com_filtro_unidade(self):
+        v2 = Veiculo.objects.create(placa='EXP0002', marca='FIAT', modelo='Uno', unidade='XYZ')
+        Manutencao.objects.create(
+            numero_os='OS-EX2', veiculo=v2,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('300'),
+        )
+        response = self.client.get(reverse('dashboard:exportar_csv'), {'unidade': 'ABC'})
+        content = response.content.decode('utf-8')
+        self.assertIn('OS-EX1', content)
+        self.assertNotIn('OS-EX2', content)
+
+
+class TooltipsTest(TestCase):
+    """Feature 10: Tooltips de contexto nos KPIs."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.client = Client()
+
+    def test_tooltips_presentes_no_html(self):
+        response = self.client.get(reverse('dashboard:index'))
+        content = response.content.decode('utf-8')
+        self.assertIn('title="', content)
+        self.assertIn('(i)', content)

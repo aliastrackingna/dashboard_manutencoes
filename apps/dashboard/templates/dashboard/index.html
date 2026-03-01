@@ -31,15 +31,20 @@
             <option value="180d" {% if periodo == '180d' %}selected{% endif %}>Últimos 180 dias</option>
             <option value="360d" {% if periodo == '360d' %}selected{% endif %}>Últimos 360 dias</option>
         </select>
+        <a id="btn-exportar-csv" href="{% url 'dashboard:exportar_csv' %}?periodo={{ periodo }}{% if unidade_param %}&unidade={{ unidade_param }}{% endif %}"
+           class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+           title="Exportar dados filtrados como CSV">
+            CSV
+        </a>
     </div>
 </div>
 
 <!-- KPI Cards -->
 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-8">
-    {% with t=kpis.tendencias %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    {% with t=kpis.tendencias th=thresholds %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.total_os %}{{ th.total_os }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Total de OS</p>
+            <p class="text-xs text-gray-400" title="Quantidade total de Ordens de Servico no periodo selecionado">Total de OS <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.total_os != None %}
             <span class="text-xs font-semibold {% if t.total_os > 0 %}text-red-500{% elif t.total_os < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
                 {% if t.total_os > 0 %}&#9650;{% elif t.total_os < 0 %}&#9660;{% endif %} {{ t.total_os }}%
@@ -48,9 +53,9 @@
         </div>
         <p class="text-2xl font-bold text-primary">{{ kpis.total_os }}</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.valor_total_executado %}{{ th.valor_total_executado }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Total Executado</p>
+            <p class="text-xs text-gray-400" title="Soma do valor total das OS com status Executada">Total Executado <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.valor_total_executado != None %}
             <span class="text-xs font-semibold {% if t.valor_total_executado > 0 %}text-red-500{% elif t.valor_total_executado < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
                 {% if t.valor_total_executado > 0 %}&#9650;{% elif t.valor_total_executado < 0 %}&#9660;{% endif %} {{ t.valor_total_executado }}%
@@ -59,9 +64,9 @@
         </div>
         <p class="text-2xl font-bold text-green-600">R$ {{ kpis.valor_total_executado|floatformat:2 }}</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.valor_aprovado_executado %}{{ th.valor_aprovado_executado }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Valor Total Aprovado</p>
+            <p class="text-xs text-gray-400" title="Soma dos valores de OS autorizadas, em execucao ou executadas">Valor Total Aprovado <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.valor_aprovado_executado != None %}
             <span class="text-xs font-semibold {% if t.valor_aprovado_executado > 0 %}text-red-500{% elif t.valor_aprovado_executado < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
                 {% if t.valor_aprovado_executado > 0 %}&#9650;{% elif t.valor_aprovado_executado < 0 %}&#9660;{% endif %} {{ t.valor_aprovado_executado }}%
@@ -70,9 +75,9 @@
         </div>
         <p class="text-2xl font-bold text-blue-600">R$ {{ kpis.valor_aprovado_executado|floatformat:2 }}</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.ticket_medio %}{{ th.ticket_medio }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Ticket Medio</p>
+            <p class="text-xs text-gray-400" title="Valor medio por OS executada (valor total executado / quantidade de OS executadas)">Ticket Medio <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.ticket_medio != None %}
             <span class="text-xs font-semibold {% if t.ticket_medio > 0 %}text-red-500{% elif t.ticket_medio < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
                 {% if t.ticket_medio > 0 %}&#9650;{% elif t.ticket_medio < 0 %}&#9660;{% endif %} {{ t.ticket_medio }}%
@@ -81,9 +86,9 @@
         </div>
         <p class="text-2xl font-bold">R$ {{ kpis.ticket_medio|floatformat:2 }}</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.pct_prazo %}{{ th.pct_prazo }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">OS Dentro do Prazo</p>
+            <p class="text-xs text-gray-400" title="Percentual de OS executadas encerradas dentro do prazo de previsao">OS Dentro do Prazo <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.pct_prazo != None %}
             <span class="text-xs font-semibold {% if t.pct_prazo > 0 %}text-green-500{% elif t.pct_prazo < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
                 {% if t.pct_prazo > 0 %}&#9650;{% elif t.pct_prazo < 0 %}&#9660;{% endif %} {{ t.pct_prazo }}%
@@ -94,9 +99,9 @@
             {{ kpis.pct_prazo }}%
         </p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.tempo_medio_dias %}{{ th.tempo_medio_dias }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Tempo Medio Resolucao</p>
+            <p class="text-xs text-gray-400" title="Media de dias entre abertura e encerramento das OS executadas">Tempo Medio Resolucao <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.tempo_medio_dias != None %}
             <span class="text-xs font-semibold {% if t.tempo_medio_dias > 0 %}text-red-500{% elif t.tempo_medio_dias < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
                 {% if t.tempo_medio_dias > 0 %}&#9650;{% elif t.tempo_medio_dias < 0 %}&#9660;{% endif %} {{ t.tempo_medio_dias }}%
@@ -105,9 +110,9 @@
         </div>
         <p class="text-2xl font-bold">{{ kpis.tempo_medio_dias }} dias</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.total_executadas %}{{ th.total_executadas }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Executadas</p>
+            <p class="text-xs text-gray-400" title="Quantidade de OS com status Executada no periodo">Executadas <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.total_executadas != None %}
             <span class="text-xs font-semibold {% if t.total_executadas > 0 %}text-green-500{% elif t.total_executadas < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
                 {% if t.total_executadas > 0 %}&#9650;{% elif t.total_executadas < 0 %}&#9660;{% endif %} {{ t.total_executadas }}%
@@ -116,9 +121,9 @@
         </div>
         <p class="text-2xl font-bold">{{ kpis.total_executadas }}</p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.custo_por_veiculo %}{{ th.custo_por_veiculo }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400">Custo/Veiculo</p>
+            <p class="text-xs text-gray-400" title="Valor total executado dividido pela quantidade de veiculos distintos com OS executada">Custo/Veiculo <span class="cursor-help text-gray-300">(i)</span></p>
             {% if t and t.custo_por_veiculo != None %}
             <span class="text-xs font-semibold {% if t.custo_por_veiculo > 0 %}text-red-500{% elif t.custo_por_veiculo < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
                 {% if t.custo_por_veiculo > 0 %}&#9650;{% elif t.custo_por_veiculo < 0 %}&#9660;{% endif %} {{ t.custo_por_veiculo }}%

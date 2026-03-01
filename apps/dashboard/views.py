@@ -1,13 +1,44 @@
+import csv
 import json
 
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
-from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.utils.safestring import mark_safe
 
+from apps.configuracoes.models import KPIConfig
 from apps.manutencoes.models import Manutencao
 from apps.veiculos.models import Veiculo
 from .kpis import get_periodo, calcular_kpis, dados_graficos
+
+
+# KPIs onde menor = melhor (threshold invertido)
+_MENOR_MELHOR = {'ticket_medio', 'tempo_medio_dias', 'custo_por_veiculo',
+                 'total_os', 'valor_total_executado', 'valor_aprovado_executado'}
+
+
+def _calcular_thresholds(kpis):
+    """Retorna dict {chave_kpi: classe_css} baseado nos thresholds do KPIConfig."""
+    configs = {c.chave: float(c.valor) for c in KPIConfig.objects.all()}
+    resultado = {}
+    for chave, valor in kpis.items():
+        if chave in ('tendencias',) or not isinstance(valor, (int, float)):
+            continue
+        threshold = configs.get(chave)
+        if threshold is None:
+            resultado[chave] = ''
+            continue
+        if chave in _MENOR_MELHOR:
+            if valor <= threshold:
+                resultado[chave] = 'border-green-500'
+            else:
+                resultado[chave] = 'border-red-500'
+        else:
+            if valor >= threshold:
+                resultado[chave] = 'border-green-500'
+            else:
+                resultado[chave] = 'border-red-500'
+    return resultado
 
 
 def _get_unidade(request):
@@ -37,10 +68,12 @@ def index(request):
     unidade, unidade_param = _get_unidade(request)
     kpis = calcular_kpis(inicio, fim, unidade=unidade)
     graficos = dados_graficos(inicio, fim, unidade=unidade)
+    thresholds = _calcular_thresholds(kpis)
     return render(request, 'dashboard/index.html', {
         'kpis': kpis,
         'graficos': graficos,
         'graficos_json': mark_safe(json.dumps(graficos)),
+        'thresholds': thresholds,
         'periodo': periodo,
         'inicio': inicio,
         'fim': fim,
@@ -109,3 +142,36 @@ def lista_drilldown(request):
         'periodo': periodo,
         'unidade_param': unidade_param,
     })
+
+
+def exportar_csv(request):
+    """Exporta OS filtradas como arquivo CSV."""
+    inicio, fim, periodo = get_periodo(request)
+    unidade, _ = _get_unidade(request)
+
+    qs = Manutencao.objects.select_related('veiculo').filter(data_abertura__lte=fim)
+    if inicio is not None:
+        qs = qs.filter(data_abertura__gte=inicio)
+    if unidade is not None:
+        qs = qs.filter(veiculo__unidade=unidade)
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="manutencoes.csv"'
+    response.write('\ufeff')  # BOM para Excel
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['OS', 'Placa', 'Unidade', 'Setor', 'Status', 'Abertura', 'Encerramento', 'Valor Total'])
+
+    for m in qs.iterator():
+        writer.writerow([
+            m.numero_os,
+            m.veiculo.placa,
+            m.veiculo.unidade or '',
+            m.setor or '',
+            m.status,
+            m.data_abertura.strftime('%d/%m/%Y') if m.data_abertura else '',
+            m.data_encerramento.strftime('%d/%m/%Y') if m.data_encerramento else '',
+            str(m.valor_total or '0'),
+        ])
+
+    return response
