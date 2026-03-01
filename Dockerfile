@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=django-user:django-group . /app/
 
-RUN mkdir -p /app/staticfiles /app/media && \
+RUN mkdir -p /app/staticfiles /app/media /app/data && \
     chown -R django-user:django-group /app && \
     chmod +x /app/entrypoint.sh
 
