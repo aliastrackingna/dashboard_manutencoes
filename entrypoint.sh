@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+mkdir -p /app/data
+
 echo "Executando migrações do banco de dados..."
 python manage.py migrate --noinput
 
