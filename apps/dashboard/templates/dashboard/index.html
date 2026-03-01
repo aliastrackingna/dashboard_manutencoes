@@ -282,6 +282,28 @@ function formatBRL(v) {
     return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
+function groupedBarLabelsPlugin() {
+    return {
+        id: 'groupedBarLabels',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            chart.data.datasets.forEach((dataset, dsIndex) => {
+                dataset.data.forEach((val, i) => {
+                    if (!val) return;
+                    const meta = chart.getDatasetMeta(dsIndex).data[i];
+                    ctx.save();
+                    ctx.fillStyle = corTexto;
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(val, meta.x, meta.y - 2);
+                    ctx.restore();
+                });
+            });
+        }
+    };
+}
+
 // 1. Evolução Mensal: barras (Qtd OS) à esquerda + linha (Valor Peças+Serviços) à direita
 const evolucaoDatasets = [{
     type: 'bar',
@@ -690,36 +712,63 @@ new Chart(document.getElementById('chart-setor'), {
     plugins: [datalabelsPlugin('dl-setor')]
 });
 
-// 7. Top Oficinas (Vertical Bar) com valor médio no tooltip
+// 7. Top Oficinas (Grouped Bar) com dois datasets
 new Chart(document.getElementById('chart-oficinas'), {
     type: 'bar',
     data: {
         labels: graficos.top_oficinas.map(o => o.oficina.split(/\s*[-=]\s*/)[0].trim()),
-        datasets: [{
-            data: graficos.top_oficinas.map(o => o.total),
-            backgroundColor: '#d97706',
-            borderRadius: 4,
-        }]
+        datasets: [
+            {
+                label: 'Aprovados',
+                data: graficos.top_oficinas.map(o => o.aprovados),
+                backgroundColor: '#1d4ed8',
+                borderRadius: 4,
+            },
+            {
+                label: 'Restante',
+                data: graficos.top_oficinas.map(o => o.total - o.aprovados),
+                backgroundColor: '#60a5fa',
+                borderRadius: 4,
+            }
+        ]
     },
     options: {
         responsive: true,
         plugins: {
-            legend: { display: false },
+            legend: { display: true, position: 'bottom', labels: { color: corTexto } },
             tooltip: {
                 callbacks: {
                     afterLabel: function(ctx) {
                         const vm = graficos.top_oficinas[ctx.dataIndex].valor_medio;
-                        return vm ? 'Valor medio: ' + formatBRL(vm) : '';
+                        const apr = graficos.top_oficinas[ctx.dataIndex].aprovados;
+                        const total = graficos.top_oficinas[ctx.dataIndex].total;
+                        let txt = '';
+                        if (vm) txt += 'Valor medio: ' + formatBRL(vm);
+                        if (txt) txt += '\n';
+                        txt += `Total: ${total} | Aprovados: ${apr}`;
+                        return txt;
                     }
                 }
             },
         },
         scales: {
-            y: { display: false },
-            x: { ticks: { font: { size: 10 }, maxRotation: 90, minRotation: 45 } },
+            x: { ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 } },
+            y: { 
+                display: true,
+                beginAtZero: true,
+                suggestedMax: Math.ceil(Math.max(...graficos.top_oficinas.map(o => Math.max(o.aprovados, o.total - o.aprovados))) / 5) * 5 + 5,
+                ticks: { 
+                    stepSize: 5,
+                    color: corTexto,
+                    font: { size: 10 }
+                },
+                grid: {
+                    color: isDark ? 'rgba(156, 163, 175, 0.2)' : 'rgba(156, 163, 175, 0.3)'
+                }
+            },
         },
     },
-    plugins: [datalabelsPlugin('dl-oficinas')]
+    plugins: [groupedBarLabelsPlugin()]
 });
 
 // 8. Peças vs Serviços (Donut — 2 fatias, válido)

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.core.cache import cache
-from django.db.models import Count, Sum, Avg, Q, F
+from django.db.models import Count, Sum, Avg, Q, F, Case, When, IntegerField
 from django.utils import timezone
 
 from apps.manutencoes.models import Manutencao, Orcamento, ItemOrcamento
@@ -186,7 +186,18 @@ def dados_graficos(inicio, fim, unidade=None):
     top_oficinas = list(
         Orcamento.objects.filter(**orc_filter)
         .values('oficina')
-        .annotate(total=Count('id'), valor_total=Sum('valor'), valor_medio=Avg('valor'))
+        .annotate(
+            total=Count('id'),
+            valor_total=Sum('valor'),
+            valor_medio=Avg('valor'),
+            aprovados=Sum(
+                Case(
+                    When(status__in=['Escolhido', 'Executado', 'Em Execução'], then=1),
+                    default=0,
+                    output_field=IntegerField()
+                )
+            )
+        )
         .order_by('-total')[:10]
     )
 
@@ -352,7 +363,8 @@ def dados_graficos(inicio, fim, unidade=None):
         'veiculos_insight': veiculos_insight,
         'top_oficinas': [
             {'oficina': o['oficina'][:40], 'total': o['total'],
-             'valor_medio': round(float(o['valor_medio']), 2) if o['valor_medio'] else 0}
+             'valor_medio': round(float(o['valor_medio']), 2) if o['valor_medio'] else 0,
+             'aprovados': o.get('aprovados', 0)}
             for o in top_oficinas
         ],
         'oficinas_insight': oficinas_insight,
