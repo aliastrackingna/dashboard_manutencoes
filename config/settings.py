@@ -4,11 +4,11 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
+    'SECRET_KEY',
     'django-insecure-*xilly5#iyqv-kbpv8uh#0x98sl=(3oos#s11%-qgz+^t$7!l$'
 )
 
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True')
+DEBUG = os.environ.get('DEBUG', 'True')
 
 # Pega os hosts da variável de ambiente
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
