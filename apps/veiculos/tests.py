@@ -34,6 +34,9 @@ class VeiculoModelTest(TestCase):
 class VeiculoListaViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         for i in range(30):
             Veiculo.objects.create(placa=f'TST{i:04d}', marca='VW', modelo='Gol')
 
@@ -60,6 +63,9 @@ class VeiculoListaViewTest(TestCase):
 class VeiculoCriarViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
 
     def test_criar_get(self):
         response = self.client.get(reverse('veiculos:criar'))
@@ -90,6 +96,9 @@ class VeiculoCriarViewTest(TestCase):
 class VeiculoEditarViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         self.veiculo = Veiculo.objects.create(placa='EDT1234', marca='VW', modelo='Gol')
 
     def test_editar_get(self):
@@ -112,6 +121,9 @@ class VeiculoEditarViewTest(TestCase):
 class VeiculoDetalheViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         self.veiculo = Veiculo.objects.create(placa='DET1234', marca='VW', modelo='Gol')
 
     def test_detalhe(self):
@@ -127,6 +139,9 @@ class VeiculoDetalheViewTest(TestCase):
 class AutocompleteViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         Veiculo.objects.create(placa='PLACA13', marca='HONDA', modelo='FIT')
         Veiculo.objects.create(placa='PLACA17', marca='HONDA', modelo='FIT')
 

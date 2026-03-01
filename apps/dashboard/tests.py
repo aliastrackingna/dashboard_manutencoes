@@ -119,6 +119,9 @@ class DashboardViewsTest(TestCase):
         from django.core.cache import cache
         cache.clear()
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
 
     def test_index(self):
         response = self.client.get(reverse('dashboard:index'))
@@ -196,6 +199,9 @@ class GetPeriodoTest(TestCase):
         from django.core.cache import cache
         cache.clear()
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
 
     def test_periodo_60d(self):
         response = self.client.get(reverse('dashboard:index'), {'periodo': '60d'})
@@ -223,6 +229,9 @@ class FiltroUnidadeTest(TestCase):
         from django.core.cache import cache
         cache.clear()
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         self.v_abc = Veiculo.objects.create(placa='UNI0001', marca='VW', modelo='Gol', unidade='ABC')
         self.v_xyz = Veiculo.objects.create(placa='UNI0002', marca='FIAT', modelo='Uno', unidade='XYZ')
         self.v_sem = Veiculo.objects.create(placa='UNI0003', marca='FORD', modelo='Ka', unidade='')
@@ -573,6 +582,9 @@ class ThresholdsTest(TestCase):
         from django.core.cache import cache
         cache.clear()
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         self.v = Veiculo.objects.create(placa='THR0001', marca='VW', modelo='Gol')
         Manutencao.objects.create(
             numero_os='OS-TH1', veiculo=self.v,
@@ -605,6 +617,9 @@ class ExportarCSVTest(TestCase):
         from django.core.cache import cache
         cache.clear()
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         self.v = Veiculo.objects.create(placa='EXP0001', marca='VW', modelo='Gol', unidade='ABC')
         Manutencao.objects.create(
             numero_os='OS-EX1', veiculo=self.v,
@@ -642,6 +657,9 @@ class TooltipsTest(TestCase):
         from django.core.cache import cache
         cache.clear()
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
 
     def test_tooltips_presentes_no_html(self):
         response = self.client.get(reverse('dashboard:index'))

@@ -107,6 +107,9 @@ class ItemOrcamentoModelTest(TestCase):
 class ManutencaoDetalheViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         v = Veiculo.objects.create(placa='PLACA13', marca='HONDA', modelo='FIT')
         self.m = Manutencao.objects.create(
             numero_os='2026 - 85', veiculo=v,
@@ -146,6 +149,9 @@ class ManutencaoDetalheViewTest(TestCase):
 class CompararOrcamentosViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
         v = Veiculo.objects.create(placa='CMP0001', marca='FIAT', modelo='UNO')
         self.m = Manutencao.objects.create(
             numero_os='2026 - 100', veiculo=v,

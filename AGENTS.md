@@ -1,4 +1,4 @@
-# AGENTS.md - QFrotas Dashboard
+# AGENTS.md - Frotas Dashboard
 
 ## Project Overview
 - **Framework**: Django 6.0
@@ -8,7 +8,7 @@
 
 ## Project Structure
 ```
-qfrotas_dashboard/
+frotas_dashboard/
 ├── apps/                    # Django applications
 │   ├── configuracoes/       # Settings
 │   ├── dashboard/           # Main dashboard

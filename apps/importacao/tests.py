@@ -227,19 +227,29 @@ class PipelineIntegracaoTest(TestCase):
 
 
 class UploadViewTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+    
     def test_upload_page_get(self):
         client = Client()
+        client.login(username='testuser', password='testpass')
         response = client.get(reverse('importacao:upload'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Importação')
 
     def test_upload_sem_arquivo(self):
         client = Client()
+        client.login(username='testuser', password='testpass')
         response = client.post(reverse('importacao:upload'))
         self.assertEqual(response.status_code, 200)
 
 
 class RegistroImportacaoTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+    
     def test_str(self):
         from .models import RegistroImportacao
         registro = RegistroImportacao.objects.create()
@@ -255,6 +265,7 @@ class RegistroImportacaoTest(TestCase):
         veiculos_file = SimpleUploadedFile('veiculos.csv', csv_content, content_type='text/csv')
 
         client = Client()
+        client.login(username='testuser', password='testpass')
         client.post(reverse('importacao:upload'), {'veiculos': veiculos_file})
 
         self.assertEqual(RegistroImportacao.objects.count(), 1)
@@ -272,6 +283,7 @@ class RegistroImportacaoTest(TestCase):
         veiculos_file = SimpleUploadedFile('veiculos.csv', csv_content, content_type='text/csv')
 
         client = Client()
+        client.login(username='testuser', password='testpass')
         client.post(reverse('importacao:upload'), {'veiculos': veiculos_file})
 
         self.assertEqual(RegistroImportacao.objects.count(), 1)
@@ -300,15 +312,21 @@ class ContextProcessorUltimaImportacaoTest(TestCase):
         self.assertIsNotNone(contexto['ultima_importacao'].realizado_em)
 
     def test_footer_mostra_nenhuma_importacao(self):
+        from django.contrib.auth.models import User
+        User.objects.create_user(username='testuser', password='testpass')
         client = Client()
+        client.login(username='testuser', password='testpass')
         response = client.get(reverse('importacao:upload'))
         self.assertContains(response, 'Nenhuma importação realizada')
 
     def test_footer_mostra_data_importacao(self):
         from .models import RegistroImportacao
+        from django.contrib.auth.models import User
+        User.objects.create_user(username='testuser', password='testpass')
         RegistroImportacao.objects.create()
 
         client = Client()
+        client.login(username='testuser', password='testpass')
         response = client.get(reverse('importacao:upload'))
         self.assertContains(response, 'Dados atualizados em')
         self.assertNotContains(response, 'Nenhuma importação realizada')

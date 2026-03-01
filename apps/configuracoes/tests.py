@@ -31,6 +31,9 @@ class KPIConfigModelTest(TestCase):
 class KPIConfigViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
 
     def test_kpis_page_loads(self):
         response = self.client.get(reverse('configuracoes:kpis'))

@@ -116,11 +116,14 @@ class FTSBaseTest(TransactionTestCase):
 
 class PesquisaViewTest(TransactionTestCase):
     def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_user(username='testuser', password='testpass')
         _drop_fts()
         criar_tabela_fts()
         _setup_data()
         rebuild_fts()
         self.client = Client()
+        self.client.login(username='testuser', password='testpass')
 
     def tearDown(self):
         _drop_fts()
