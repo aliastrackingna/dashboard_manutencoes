@@ -9,7 +9,7 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY:-django-insecure-change-in-production}
       - DEBUG=${DEBUG:-False}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DB_PATH=/app/data/db_dashboard.sqlite3
     volumes:
       - staticfiles:/app/staticfiles
