@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4"></script>
     <style type="text/tailwindcss">
+        @import "tailwindcss";
+
         @custom-variant dark (&:where(.dark,.dark *));
+        
         @theme {
             --color-primary: #2563eb;
             --color-primary-dark: #1d4ed8;
@@ -17,89 +21,23 @@
             --color-danger: #dc2626;
         }
     </style>
-    <style>
-        @page {
-            size: A4 portrait;
-            margin: 12mm 12mm 12mm 12mm;
-        }
-
-        @media print {
-            /* Fonte legível e cores preservadas */
-            html { font-size: 12px !important; }
-            body {
-                height: auto !important;
-                background: white !important;
-                color: #1f2937 !important;
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
+    <link rel="stylesheet" href="{% static 'css/print.css' %}">
+    <script>
+        (function () {
+            var html = document.documentElement;
+            var saved = localStorage.getItem('theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var isDark = saved ? saved === 'dark' : prefersDark;
+            if (isDark) {
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
             }
-
-            /* Forçar modo claro */
-            .dark\:bg-gray-800, .dark\:bg-gray-900 { background: white !important; }
-            .dark\:text-gray-100, .dark\:text-white, .dark\:text-gray-400 { color: #1f2937 !important; }
-            .dark\:border-gray-700, .dark\:border-gray-600 { border-color: #e5e7eb !important; }
-
-            /* Layout livre de altura fixa */
-            .h-full, .h-\[calc\(100vh-4rem\)\] { height: auto !important; overflow: visible !important; }
-            .flex.h-\[calc\(100vh-4rem\)\] { display: block !important; }
-            main { overflow: visible !important; height: auto !important; padding: 0 !important; }
-
-            /* Esconder elementos não essenciais */
-            nav, aside, footer, #periodo-select, .dashboard-title-bar { display: none !important; }
-
-            /* Mostrar cabeçalho de impressão */
-            #print-header { display: block !important; }
-
-            /* KPI cards: 6 colunas compactas */
-            .grid.grid-cols-2 {
-                grid-template-columns: repeat(6, 1fr) !important;
-                gap: 6px !important;
-                margin-bottom: 10px !important;
-            }
-            .grid.grid-cols-2 > div {
-                padding: 6px 8px !important;
-                box-shadow: none !important;
-                border: 1px solid #e5e7eb !important;
-                border-radius: 6px !important;
-                background: white !important;
-            }
-            .grid.grid-cols-2 .text-2xl { font-size: 14px !important; }
-            .grid.grid-cols-2 .text-xs { font-size: 9px !important; }
-
-            /* Gráficos: 2 colunas, sem sombra, sem quebra */
-            .grid.grid-cols-1.md\:grid-cols-2 {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 8px !important;
-            }
-            .grid.grid-cols-1.md\:grid-cols-2 > div {
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-                box-shadow: none !important;
-                border: 1px solid #e5e7eb !important;
-                border-radius: 6px !important;
-                padding: 8px !important;
-                background: white !important;
-            }
-
-            /* Canvas escondido, imagens de impressão visíveis */
-            canvas { display: none !important; }
-            .print-chart-img {
-                display: block !important;
-                width: 100% !important;
-                height: auto !important;
-            }
-
-            /* Reduzir margens gerais */
-            .mb-8 { margin-bottom: 8px !important; }
-            .mb-6 { margin-bottom: 6px !important; }
-
-            /* Insights dos gráficos */
-            .text-gray-500 { color: #6b7280 !important; }
-        }
-    </style>
-    <script src="{% static 'js/theme.js' %}"></script>
+        })();
+    </script>
     {% block extra_head %}{% endblock %}
 </head>
+
 <body class="h-full bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors">
     {% include "partials/navbar.html" %}
 
@@ -123,16 +61,17 @@
 
             {% block content %}{% endblock %}
         </main>
-    </div>
-
-    <footer class="fixed bottom-0 right-0 left-0 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-2 text-xs text-gray-500 dark:text-gray-400 text-center z-10">
-        {% if ultima_importacao %}
-            Dados atualizados em {{ ultima_importacao.realizado_em|date:"d/m/Y" }} às {{ ultima_importacao.realizado_em|time:"H:i" }}
-        {% else %}
+        <footer
+            class="fixed bottom-0 right-0 left-0 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-2 text-xs text-gray-500 dark:text-gray-400 text-center z-10">
+            {% if ultima_importacao %}
+            Dados atualizados em {{ ultima_importacao.realizado_em|date:"d/m/Y" }} às {{
+            ultima_importacao.realizado_em|time:"H:i" }}
+            {% else %}
             Nenhuma importação realizada
-        {% endif %}
-    </footer>
+            {% endif %}
+        </footer>
 
-    {% block extra_js %}{% endblock %}
+        {% block extra_js %}{% endblock %}
 </body>
+
 </html>

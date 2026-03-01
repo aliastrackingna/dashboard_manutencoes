@@ -1,0 +1,68 @@
+@page {
+    size: A4 portrait;
+    margin: 12mm 12mm 12mm 12mm;
+}
+
+@media print {
+    html { font-size: 12px !important; }
+    body {
+        height: auto !important;
+        background: white !important;
+        color: #1f2937 !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .dark\:bg-gray-800, .dark\:bg-gray-900 { background: white !important; }
+    .dark\:text-gray-100, .dark\:text-white, .dark\:text-gray-400 { color: #1f2937 !important; }
+    .dark\:border-gray-700, .dark\:border-gray-600 { border-color: #e5e7eb !important; }
+
+    .h-full, .h-\[calc\(100vh-4rem\)\] { height: auto !important; overflow: visible !important; }
+    .flex.h-\[calc\(100vh-4rem\)\] { display: block !important; }
+    main { overflow: visible !important; height: auto !important; padding: 0 !important; }
+
+    nav, aside, footer, #periodo-select, .dashboard-title-bar { display: none !important; }
+
+    #print-header { display: block !important; }
+
+    .grid.grid-cols-2 {
+        grid-template-columns: repeat(6, 1fr) !important;
+        gap: 6px !important;
+        margin-bottom: 10px !important;
+    }
+    .grid.grid-cols-2 > div {
+        padding: 6px 8px !important;
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 6px !important;
+        background: white !important;
+    }
+    .grid.grid-cols-2 .text-2xl { font-size: 14px !important; }
+    .grid.grid-cols-2 .text-xs { font-size: 9px !important; }
+
+    .grid.grid-cols-1.md\:grid-cols-2 {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    .grid.grid-cols-1.md\:grid-cols-2 > div {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 6px !important;
+        padding: 8px !important;
+        background: white !important;
+    }
+
+    canvas { display: none !important; }
+    .print-chart-img {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .mb-8 { margin-bottom: 8px !important; }
+    .mb-6 { margin-bottom: 6px !important; }
+
+    .text-gray-500 { color: #6b7280 !important; }
+}
