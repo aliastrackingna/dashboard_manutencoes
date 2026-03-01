@@ -136,7 +136,7 @@
 </div>
 
 <!-- Charts -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <!-- OS por Status -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <h3 class="text-sm font-semibold mb-1">OS por Status</h3>
@@ -202,14 +202,35 @@
 const graficos = {{ graficos_json }};
 const CORES = ['#2563eb','#16a34a','#d97706','#dc2626','#8b5cf6','#06b6d4','#ec4899','#f59e0b','#10b981','#6366f1'];
 
-// Dark mode: fontes brancas nos charts
-const isDark = document.documentElement.classList.contains('dark');
-const corTexto = isDark ? '#f3f4f6' : '#374151';
-const corTextoSecundario = isDark ? '#d1d5db' : '#6b7280';
-const corDestaque = isDark ? '#fca5a5' : '#991b1b';
+// Dark mode: fontes nos charts
+let isDark = document.documentElement.classList.contains('dark');
+let corTexto = isDark ? '#f3f4f6' : '#374151';
+let corTextoSecundario = isDark ? '#d1d5db' : '#6b7280';
+let corDestaque = isDark ? '#fca5a5' : '#991b1b';
 
 Chart.defaults.color = corTexto;
 Chart.defaults.borderColor = isDark ? 'rgba(156, 163, 175, 0.2)' : 'rgba(156, 163, 175, 0.3)';
+
+// Atualiza cores dos charts ao trocar tema
+window.atualizarCoresCharts = function() {
+    isDark = document.documentElement.classList.contains('dark');
+    corTexto = isDark ? '#f3f4f6' : '#374151';
+    corTextoSecundario = isDark ? '#d1d5db' : '#6b7280';
+    corDestaque = isDark ? '#fca5a5' : '#991b1b';
+    Chart.defaults.color = corTexto;
+    Chart.defaults.borderColor = isDark ? 'rgba(156, 163, 175, 0.2)' : 'rgba(156, 163, 175, 0.3)';
+    Object.values(Chart.instances).forEach(function(chart) {
+        // Atualizar cor de ticks, títulos e legendas em cada escala
+        Object.values(chart.options.scales || {}).forEach(function(scale) {
+            if (scale.ticks) scale.ticks.color = corTexto;
+            if (scale.title) scale.title.color = corTexto;
+        });
+        if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+            chart.options.plugins.legend.labels.color = corTexto;
+        }
+        chart.update('none');
+    });
+};
 
 function drillTo(filtro, valor) {
     const periodo = document.getElementById('periodo-select').value;
@@ -280,7 +301,7 @@ new Chart(document.getElementById('chart-status'), {
 });
 
 // Datalabels plugin factory
-function datalabelsPlugin(id, {formatFn = v => v, color = corTexto} = {}) {
+function datalabelsPlugin(id, {formatFn = v => v} = {}) {
     return {
         id,
         afterDatasetsDraw(chart) {
@@ -289,7 +310,7 @@ function datalabelsPlugin(id, {formatFn = v => v, color = corTexto} = {}) {
             chart.data.datasets[0].data.forEach((val, i) => {
                 const meta = chart.getDatasetMeta(0).data[i];
                 ctx.save();
-                ctx.fillStyle = color;
+                ctx.fillStyle = corTexto;
                 ctx.font = 'bold 13px sans-serif';
                 if (isHorizontal) {
                     ctx.textAlign = 'left';
@@ -592,7 +613,7 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
                 const area = chart.chartArea;
                 const lx = area.right - 110, ly = area.top + 8, lw = 100, lh = 10;
                 ctx.save();
-                ctx.fillStyle = isDark ? 'rgba(31, 41, 55, 0.85)' : 'rgba(255,255,255,0.85)';
+                ctx.fillStyle = corTexto === '#f3f4f6' ? 'rgba(31, 41, 55, 0.85)' : 'rgba(255,255,255,0.85)';
                 ctx.fillRect(lx - 4, ly - 14, lw + 8, lh + 30);
                 ctx.fillStyle = corTextoSecundario;
                 ctx.font = '10px sans-serif';
@@ -680,6 +701,26 @@ window.addEventListener('beforeprint', function() {
     const unidadeTexto = unidadeSelect.options[unidadeSelect.selectedIndex].text;
     document.getElementById('print-meta').textContent = 'Impresso em ' + dataFormatada + '  •  Período: ' + periodoTexto + '  •  Unidade: ' + unidadeTexto;
 
+    // Se em dark mode, forçar cores escuras nos charts antes de capturar
+    const wasDark = isDark;
+    if (wasDark) {
+        corTexto = '#374151';
+        corTextoSecundario = '#6b7280';
+        corDestaque = '#991b1b';
+        Chart.defaults.color = '#374151';
+        Chart.defaults.borderColor = 'rgba(156, 163, 175, 0.3)';
+        Object.values(Chart.instances).forEach(function(chart) {
+            Object.values(chart.options.scales || {}).forEach(function(scale) {
+                if (scale.ticks) scale.ticks.color = '#374151';
+                if (scale.title) scale.title.color = '#374151';
+            });
+            if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = '#374151';
+            }
+            chart.update('none');
+        });
+    }
+
     // Converter cada canvas em imagem de alta resolução
     document.querySelectorAll('canvas').forEach(function(canvas) {
         if (canvas.style.display === 'none') return;
@@ -688,6 +729,9 @@ window.addEventListener('beforeprint', function() {
         offscreen.width = canvas.width * scale;
         offscreen.height = canvas.height * scale;
         const ctx = offscreen.getContext('2d');
+        // Fundo branco para impressão
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
         ctx.scale(scale, scale);
         ctx.drawImage(canvas, 0, 0);
         const img = new Image();
@@ -697,6 +741,25 @@ window.addEventListener('beforeprint', function() {
         canvas.parentNode.insertBefore(img, canvas.nextSibling);
         canvas.dataset.printHidden = '1';
     });
+
+    // Restaurar cores dark mode após captura
+    if (wasDark) {
+        corTexto = '#f3f4f6';
+        corTextoSecundario = '#d1d5db';
+        corDestaque = '#fca5a5';
+        Chart.defaults.color = '#f3f4f6';
+        Chart.defaults.borderColor = 'rgba(156, 163, 175, 0.2)';
+        Object.values(Chart.instances).forEach(function(chart) {
+            Object.values(chart.options.scales || {}).forEach(function(scale) {
+                if (scale.ticks) scale.ticks.color = '#f3f4f6';
+                if (scale.title) scale.title.color = '#f3f4f6';
+            });
+            if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = '#f3f4f6';
+            }
+            chart.update('none');
+        });
+    }
 });
 
 window.addEventListener('afterprint', function() {
