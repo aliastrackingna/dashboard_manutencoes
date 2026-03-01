@@ -66,4 +66,8 @@ def executar_pipeline(veiculos_file=None, manutencoes_file=None,
         from apps.pesquisa.fts import rebuild_fts
         rebuild_fts()
 
+    # Invalidar cache de KPIs e gráficos
+    from django.core.cache import cache
+    cache.clear()
+
     return relatorio

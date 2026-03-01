@@ -10,6 +10,8 @@ from .kpis import calcular_kpis, dados_graficos, _periodo_anterior
 
 class KPIsTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.v = Veiculo.objects.create(placa='TST0001', marca='VW', modelo='Gol')
         self.inicio = timezone.make_aware(datetime(2026, 1, 1))
         self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
@@ -73,6 +75,8 @@ class KPIsTest(TestCase):
 
 class DadosGraficosTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.v = Veiculo.objects.create(placa='TST0001', marca='VW', modelo='Gol')
         self.inicio = timezone.make_aware(datetime(2026, 1, 1))
         self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
@@ -112,6 +116,8 @@ class DadosGraficosTest(TestCase):
 
 class DashboardViewsTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = Client()
 
     def test_index(self):
@@ -187,6 +193,8 @@ class DashboardViewsTest(TestCase):
 
 class GetPeriodoTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = Client()
 
     def test_periodo_60d(self):
@@ -212,6 +220,8 @@ class GetPeriodoTest(TestCase):
 
 class FiltroUnidadeTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = Client()
         self.v_abc = Veiculo.objects.create(placa='UNI0001', marca='VW', modelo='Gol', unidade='ABC')
         self.v_xyz = Veiculo.objects.create(placa='UNI0002', marca='FIAT', modelo='Uno', unidade='XYZ')
@@ -283,6 +293,8 @@ class FiltroUnidadeTest(TestCase):
 
 class DadosGraficosInsightsTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.v = Veiculo.objects.create(placa='INS0001', marca='VW', modelo='Gol')
         self.inicio = timezone.make_aware(datetime(2026, 1, 1))
         self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
@@ -396,3 +408,35 @@ class CustoPorVeiculoTest(TestCase):
     def test_custo_por_veiculo_sem_dados(self):
         kpis = calcular_kpis(self.inicio, self.fim)
         self.assertEqual(kpis['custo_por_veiculo'], 0)
+
+
+class CacheKPIsTest(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.v = Veiculo.objects.create(placa='CAC0001', marca='VW', modelo='Gol')
+        self.inicio = timezone.make_aware(datetime(2026, 1, 1))
+        self.fim = timezone.make_aware(datetime(2026, 12, 31, 23, 59, 59))
+
+    def test_cache_e_usado(self):
+        from django.core.cache import cache
+        Manutencao.objects.create(
+            numero_os='OS-CC1', veiculo=self.v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 10)),
+            status='Executada', valor_total=Decimal('500'),
+        )
+        kpis1 = calcular_kpis(self.inicio, self.fim)
+        # Segundo call deve vir do cache (mesmo resultado)
+        kpis2 = calcular_kpis(self.inicio, self.fim)
+        self.assertEqual(kpis1, kpis2)
+
+    def test_cache_invalidado_apos_clear(self):
+        from django.core.cache import cache
+        from apps.dashboard.kpis import _cache_key, CACHE_TIMEOUT
+        # Colocar valor manualmente no cache
+        chave = _cache_key('kpis', self.inicio, self.fim, None)
+        cache.set(chave, {'fake': True}, CACHE_TIMEOUT)
+        self.assertEqual(cache.get(chave), {'fake': True})
+        # Limpar cache (como faz o pipeline)
+        cache.clear()
+        self.assertIsNone(cache.get(chave))

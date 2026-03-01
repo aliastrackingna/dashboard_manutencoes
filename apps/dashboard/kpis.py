@@ -1,8 +1,13 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
+
+from django.core.cache import cache
 from django.db.models import Count, Sum, Avg, Q, F
 from django.utils import timezone
+
 from apps.manutencoes.models import Manutencao, Orcamento, ItemOrcamento
+
+CACHE_TIMEOUT = 600  # 10 minutos
 
 
 def get_periodo(request):
@@ -103,7 +108,19 @@ def _calcular_kpis_raw(inicio, fim, unidade=None):
     }
 
 
+def _cache_key(prefixo, inicio, fim, unidade):
+    i = inicio.isoformat() if inicio else 'todos'
+    f = fim.isoformat() if fim else 'agora'
+    u = unidade if unidade is not None else 'todas'
+    return f'{prefixo}:{i}:{f}:{u}'
+
+
 def calcular_kpis(inicio, fim, unidade=None):
+    chave = _cache_key('kpis', inicio, fim, unidade)
+    cached = cache.get(chave)
+    if cached is not None:
+        return cached
+
     kpis = _calcular_kpis_raw(inicio, fim, unidade)
 
     # Tendências (variação % vs período anterior)
@@ -124,10 +141,16 @@ def calcular_kpis(inicio, fim, unidade=None):
     else:
         kpis['tendencias'] = None
 
+    cache.set(chave, kpis, CACHE_TIMEOUT)
     return kpis
 
 
 def dados_graficos(inicio, fim, unidade=None):
+    chave = _cache_key('graficos', inicio, fim, unidade)
+    cached = cache.get(chave)
+    if cached is not None:
+        return cached
+
     qs = _filtrar_qs(Manutencao.objects, inicio, fim, unidade)
 
     # OS por Status
@@ -242,7 +265,7 @@ def dados_graficos(inicio, fim, unidade=None):
     else:
         setor_insight = ""
 
-    return {
+    resultado = {
         'os_por_status': os_por_status,
         'status_insight': status_insight,
         'evolucao_mensal': evolucao_mensal,
@@ -262,3 +285,6 @@ def dados_graficos(inicio, fim, unidade=None):
         'os_por_setor': os_por_setor,
         'setor_insight': setor_insight,
     }
+
+    cache.set(chave, resultado, CACHE_TIMEOUT)
+    return resultado
