@@ -202,6 +202,15 @@
 const graficos = {{ graficos_json }};
 const CORES = ['#2563eb','#16a34a','#d97706','#dc2626','#8b5cf6','#06b6d4','#ec4899','#f59e0b','#10b981','#6366f1'];
 
+// Dark mode: fontes brancas nos charts
+const isDark = document.documentElement.classList.contains('dark');
+const corTexto = isDark ? '#f3f4f6' : '#374151';
+const corTextoSecundario = isDark ? '#d1d5db' : '#6b7280';
+const corDestaque = isDark ? '#fca5a5' : '#991b1b';
+
+Chart.defaults.color = corTexto;
+Chart.defaults.borderColor = isDark ? 'rgba(156, 163, 175, 0.2)' : 'rgba(156, 163, 175, 0.3)';
+
 function drillTo(filtro, valor) {
     const periodo = document.getElementById('periodo-select').value;
     const unidade = document.getElementById('unidade-select').value;
@@ -259,7 +268,7 @@ new Chart(document.getElementById('chart-status'), {
             chart.data.datasets[0].data.forEach((val, i) => {
                 const meta = chart.getDatasetMeta(0).data[i];
                 ctx.save();
-                ctx.fillStyle = '#374151';
+                ctx.fillStyle = corTexto;
                 ctx.font = 'bold 13px sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -271,7 +280,7 @@ new Chart(document.getElementById('chart-status'), {
 });
 
 // Datalabels plugin factory
-function datalabelsPlugin(id, {formatFn = v => v, color = '#374151'} = {}) {
+function datalabelsPlugin(id, {formatFn = v => v, color = corTexto} = {}) {
     return {
         id,
         afterDatasetsDraw(chart) {
@@ -484,7 +493,7 @@ new Chart(document.getElementById('chart-tipo'), {
             const cx = (left + right) / 2;
             const cy = (top + bottom) / 2;
             ctx.save();
-            ctx.fillStyle = '#374151';
+            ctx.fillStyle = corTexto;
             ctx.font = 'bold 15px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -566,12 +575,12 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
                 const d = scatterData[iOutlier];
                 const r = radii[iOutlier];
                 ctx.save();
-                ctx.fillStyle = '#991b1b';
+                ctx.fillStyle = corDestaque;
                 ctx.font = 'bold 11px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
                 ctx.fillText(d.placa, point.x, point.y - r - 12);
-                ctx.fillStyle = '#6b7280';
+                ctx.fillStyle = corTextoSecundario;
                 ctx.font = '10px sans-serif';
                 ctx.fillText(formatBRL(d.y), point.x, point.y - r - 2);
                 ctx.restore();
@@ -583,9 +592,9 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
                 const area = chart.chartArea;
                 const lx = area.right - 110, ly = area.top + 8, lw = 100, lh = 10;
                 ctx.save();
-                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.fillStyle = isDark ? 'rgba(31, 41, 55, 0.85)' : 'rgba(255,255,255,0.85)';
                 ctx.fillRect(lx - 4, ly - 14, lw + 8, lh + 30);
-                ctx.fillStyle = '#6b7280';
+                ctx.fillStyle = corTextoSecundario;
                 ctx.font = '10px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('Custo', lx + lw / 2, ly - 2);
@@ -595,7 +604,7 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
                 grad.addColorStop(1, custoToColor(maxCusto));
                 ctx.fillStyle = grad;
                 ctx.fillRect(lx, ly, lw, lh);
-                ctx.fillStyle = '#6b7280';
+                ctx.fillStyle = corTextoSecundario;
                 ctx.font = '9px sans-serif';
                 ctx.textAlign = 'left';
                 ctx.fillText('Menor', lx, ly + lh + 10);

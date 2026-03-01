@@ -97,6 +97,7 @@
             .text-gray-500 { color: #6b7280 !important; }
         }
     </style>
+    <script src="{% static 'js/theme.js' %}"></script>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="h-full bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors">
@@ -132,7 +133,6 @@
         {% endif %}
     </footer>
 
-    <script src="{% static 'js/theme.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
