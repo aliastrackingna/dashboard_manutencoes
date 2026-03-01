@@ -14,7 +14,7 @@ services:
     volumes:
       - staticfiles:/app/staticfiles
       - mediafiles:/app/media
-      - ./data:/app/data  # Mapeia a pasta inteira
+      - dados_dashboard:/app/data  # Mapeia a pasta inteira
     networks:
       - dashboard-network
 
