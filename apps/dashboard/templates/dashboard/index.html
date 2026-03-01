@@ -137,16 +137,7 @@
 
 <!-- Charts -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-    <!-- OS por Status -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">OS por Status</h3>
-        {% if graficos.status_insight %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.status_insight }}</p>
-        {% endif %}
-        <canvas id="chart-status" height="280"></canvas>
-    </div>
-
-    <!-- Evolução Mensal -->
+    <!-- 1. Evolução Mensal -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <h3 class="text-sm font-semibold mb-1">Evolucao Mensal: OS e Valor (Pecas + Servicos)</h3>
         {% if graficos.evolucao_insight %}
@@ -155,7 +146,25 @@
         <canvas id="chart-evolucao" height="250"></canvas>
     </div>
 
-    <!-- Top 10 Veículos -->
+    <!-- 2. OS por Status -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">OS por Status</h3>
+        {% if graficos.status_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.status_insight }}</p>
+        {% endif %}
+        <canvas id="chart-status" height="280"></canvas>
+    </div>
+
+    <!-- 3. OS por Unidade -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">OS por Unidade</h3>
+        {% if graficos.unidade_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.unidade_insight }}</p>
+        {% endif %}
+        <canvas id="chart-unidade" height="250"></canvas>
+    </div>
+
+    <!-- 4. Top 10 Veículos -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <h3 class="text-sm font-semibold mb-1">Top 10 Veículos por Gasto</h3>
         {% if graficos.veiculos_insight %}
@@ -164,25 +173,13 @@
         <canvas id="chart-veiculos" height="300"></canvas>
     </div>
 
-    <!-- Top 10 Oficinas -->
+    <!-- 5. Dispersão de Custos por Frequência de Manutenção -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">Top 10 Oficinas por Volume</h3>
-        {% if graficos.oficinas_insight %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.oficinas_insight }}</p>
-        {% endif %}
-        <canvas id="chart-oficinas" height="300"></canvas>
+        <h3 class="text-sm font-semibold mb-1">Dispersao de Custos por Frequencia de Manutencao</h3>
+        <canvas id="chart-scatter" height="250"></canvas>
     </div>
 
-    <!-- Peças vs Serviços -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">Distribuição Peças vs Serviços</h3>
-        {% if graficos.tipo_insight %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.tipo_insight }}</p>
-        {% endif %}
-        <canvas id="chart-tipo" height="250"></canvas>
-    </div>
-
-    <!-- OS por Setor -->
+    <!-- 6. OS por Setor -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <h3 class="text-sm font-semibold mb-1">OS por Setor</h3>
         {% if graficos.setor_insight %}
@@ -191,10 +188,22 @@
         <canvas id="chart-setor" height="280"></canvas>
     </div>
 
-    <!-- Dispersão de Custos por Frequência de Manutenção -->
+    <!-- 7. Top 10 Oficinas -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">Dispersao de Custos por Frequencia de Manutencao</h3>
-        <canvas id="chart-scatter" height="250"></canvas>
+        <h3 class="text-sm font-semibold mb-1">Top 10 Oficinas por Volume</h3>
+        {% if graficos.oficinas_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.oficinas_insight }}</p>
+        {% endif %}
+        <canvas id="chart-oficinas" height="300"></canvas>
+    </div>
+
+    <!-- 8. Peças vs Serviços -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold mb-1">Distribuição Peças vs Serviços</h3>
+        {% if graficos.tipo_insight %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.tipo_insight }}</p>
+        {% endif %}
+        <canvas id="chart-tipo" height="250"></canvas>
     </div>
 </div>
 
@@ -240,7 +249,108 @@ function drillTo(filtro, valor) {
     window.location.href = url;
 }
 
-// OS por Status (Horizontal Bar — storytelling)
+// Datalabels plugin factory
+function datalabelsPlugin(id, {formatFn = v => v} = {}) {
+    return {
+        id,
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const isHorizontal = chart.config.options.indexAxis === 'y';
+            chart.data.datasets[0].data.forEach((val, i) => {
+                const meta = chart.getDatasetMeta(0).data[i];
+                ctx.save();
+                ctx.fillStyle = corTexto;
+                ctx.font = 'bold 13px sans-serif';
+                if (isHorizontal) {
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(formatFn(val), meta.x + 6, meta.y);
+                } else {
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(formatFn(val), meta.x, meta.y - 4);
+                }
+                ctx.restore();
+            });
+        }
+    };
+}
+
+function formatBRL(v) {
+    return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+// 1. Evolução Mensal: barras (Qtd OS) à esquerda + linha (Valor Peças+Serviços) à direita
+const evolucaoDatasets = [{
+    type: 'bar',
+    label: 'Qtd OS',
+    data: graficos.evolucao_mensal.data,
+    backgroundColor: '#2563eb',
+    borderRadius: 4,
+    yAxisID: 'y',
+    order: 2,
+}];
+if (graficos.evolucao_mensal.valor_total && graficos.evolucao_mensal.valor_total.some(v => v > 0)) {
+    evolucaoDatasets.push({
+        type: 'line',
+        label: 'Valor (Pecas + Servicos)',
+        data: graficos.evolucao_mensal.valor_total,
+        borderColor: '#16a34a',
+        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+        borderWidth: 2,
+        pointRadius: 4,
+        fill: false,
+        tension: 0.3,
+        yAxisID: 'y1',
+        order: 1,
+    });
+}
+new Chart(document.getElementById('chart-evolucao'), {
+    type: 'bar',
+    data: {
+        labels: graficos.evolucao_mensal.labels,
+        datasets: evolucaoDatasets,
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: evolucaoDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        if (ctx.datasetIndex === 1) return ctx.dataset.label + ': ' + formatBRL(ctx.raw);
+                        return ctx.dataset.label + ': ' + ctx.raw;
+                    }
+                }
+            },
+        },
+        scales: {
+            y: {
+                position: 'left',
+                grid: { display: false },
+                ticks: { font: { size: 11 } },
+                title: { display: true, text: 'Qtd OS', font: { size: 11 } },
+                suggestedMax: Math.max(...graficos.evolucao_mensal.data) + 10,
+            },
+            y1: {
+                position: 'right',
+                grid: { display: false },
+                ticks: { font: { size: 11 }, callback: v => v >= 1000 ? 'R$ ' + (v / 1000).toLocaleString('pt-BR') + 'k' : 'R$ ' + v },
+                title: { display: true, text: 'Valor (R$)', font: { size: 11 } },
+            },
+            x: { ticks: { font: { size: 13 } }, grid: { display: false } },
+        },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                const label = graficos.evolucao_mensal.labels[els[0].index];
+                drillTo('mes', label);
+            }
+        }
+    },
+    plugins: [datalabelsPlugin('dl-evolucao')]
+});
+
+// 2. OS por Status (Horizontal Bar — storytelling)
 const STATUS_CORES = {
     'Lançada': '#9ca3af',
     'Orçamentação': '#d97706',
@@ -300,52 +410,21 @@ new Chart(document.getElementById('chart-status'), {
     }]
 });
 
-// Datalabels plugin factory
-function datalabelsPlugin(id, {formatFn = v => v} = {}) {
-    return {
-        id,
-        afterDatasetsDraw(chart) {
-            const ctx = chart.ctx;
-            const isHorizontal = chart.config.options.indexAxis === 'y';
-            chart.data.datasets[0].data.forEach((val, i) => {
-                const meta = chart.getDatasetMeta(0).data[i];
-                ctx.save();
-                ctx.fillStyle = corTexto;
-                ctx.font = 'bold 13px sans-serif';
-                if (isHorizontal) {
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(formatFn(val), meta.x + 6, meta.y);
-                } else {
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillText(formatFn(val), meta.x, meta.y - 4);
-                }
-                ctx.restore();
-            });
-        }
-    };
-}
-
-function formatBRL(v) {
-    return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-
-// Evolução Mensal: barras (Qtd OS) à esquerda + linha (Valor Peças+Serviços) à direita
-const evolucaoDatasets = [{
+// 3. OS por Unidade (combo: barras Qtd OS + linha Valor gasto)
+const unidadeDatasets = [{
     type: 'bar',
     label: 'Qtd OS',
-    data: graficos.evolucao_mensal.data,
+    data: graficos.os_por_unidade.qtd,
     backgroundColor: '#2563eb',
     borderRadius: 4,
     yAxisID: 'y',
     order: 2,
 }];
-if (graficos.evolucao_mensal.valor_total && graficos.evolucao_mensal.valor_total.some(v => v > 0)) {
-    evolucaoDatasets.push({
+if (graficos.os_por_unidade.valor && graficos.os_por_unidade.valor.some(v => v > 0)) {
+    unidadeDatasets.push({
         type: 'line',
-        label: 'Valor (Pecas + Servicos)',
-        data: graficos.evolucao_mensal.valor_total,
+        label: 'Valor Gasto',
+        data: graficos.os_por_unidade.valor,
         borderColor: '#16a34a',
         backgroundColor: 'rgba(22, 163, 74, 0.1)',
         borderWidth: 2,
@@ -356,16 +435,16 @@ if (graficos.evolucao_mensal.valor_total && graficos.evolucao_mensal.valor_total
         order: 1,
     });
 }
-new Chart(document.getElementById('chart-evolucao'), {
+new Chart(document.getElementById('chart-unidade'), {
     type: 'bar',
     data: {
-        labels: graficos.evolucao_mensal.labels,
-        datasets: evolucaoDatasets,
+        labels: graficos.os_por_unidade.labels,
+        datasets: unidadeDatasets,
     },
     options: {
         responsive: true,
         plugins: {
-            legend: { display: evolucaoDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
+            legend: { display: unidadeDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
             tooltip: {
                 callbacks: {
                     label: function(ctx) {
@@ -379,45 +458,65 @@ new Chart(document.getElementById('chart-evolucao'), {
             y: {
                 position: 'left',
                 grid: { display: false },
-                ticks: { font: { size: 11 } },
+                ticks: { font: { size: 11 }, stepSize: 1 },
                 title: { display: true, text: 'Qtd OS', font: { size: 11 } },
+                suggestedMax: Math.max(...graficos.os_por_unidade.qtd) + 1,
             },
             y1: {
                 position: 'right',
                 grid: { display: false },
-                ticks: { font: { size: 11 }, callback: v => formatBRL(v) },
+                ticks: { font: { size: 11 }, callback: v => v >= 1000 ? 'R$ ' + (v / 1000).toLocaleString('pt-BR') + 'k' : 'R$ ' + v },
                 title: { display: true, text: 'Valor (R$)', font: { size: 11 } },
             },
-            x: { ticks: { font: { size: 13 } }, grid: { display: false } },
+            x: { ticks: { font: { size: 10 }, maxRotation: 90, minRotation: 45 }, grid: { display: false } },
         },
         onClick: (e, els) => {
             if (els.length > 0) {
-                const label = graficos.evolucao_mensal.labels[els[0].index];
-                drillTo('mes', label);
+                const unidade = graficos.os_por_unidade.labels[els[0].index];
+                drillTo('unidade', unidade);
             }
         }
     },
-    plugins: [datalabelsPlugin('dl-evolucao')]
+    plugins: [datalabelsPlugin('dl-unidade')]
 });
 
-// Top Veículos (Horizontal Bar)
+// Escala de calor reutilizável: amarelo claro → laranja → vermelho escuro
+function heatColor(val, min, max) {
+    const range = max - min || 1;
+    const t = (val - min) / range;
+    let r, g, b;
+    if (t < 0.5) {
+        const s = t * 2;
+        r = 255; g = Math.round(235 - s * 100); b = Math.round(59 - s * 39);
+    } else {
+        const s = (t - 0.5) * 2;
+        r = Math.round(255 - s * 75); g = Math.round(135 - s * 105); b = Math.round(20 - s * 10);
+    }
+    return `rgba(${r}, ${g}, ${b}, 0.85)`;
+}
+
+// 4. Top Veículos (Vertical Bar) com escala de calor
+const veiculosData = graficos.top_veiculos.map(v => v.total);
+const veiculosMin = Math.min(...veiculosData);
+const veiculosMax = Math.max(...veiculosData);
+const veiculosCores = veiculosData.map(v => heatColor(v, veiculosMin, veiculosMax));
+
 new Chart(document.getElementById('chart-veiculos'), {
     type: 'bar',
     data: {
         labels: graficos.top_veiculos.map(v => v.placa),
         datasets: [{
-            data: graficos.top_veiculos.map(v => v.total),
-            backgroundColor: '#16a34a',
+            data: veiculosData,
+            backgroundColor: veiculosCores,
             borderRadius: 4,
         }]
     },
     options: {
-        indexAxis: 'y',
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-            x: { display: false },
-            y: { ticks: { font: { size: 13 } } },
+            y: { display: false },
+            x: { ticks: { font: { size: 10 }, maxRotation: 90, minRotation: 45 } },
         },
         onClick: (e, els) => {
             if (els.length > 0) {
@@ -426,136 +525,28 @@ new Chart(document.getElementById('chart-veiculos'), {
             }
         }
     },
-    plugins: [datalabelsPlugin('dl-veiculos', {formatFn: formatBRL})]
-});
-
-// Top Oficinas (Horizontal Bar) com valor médio no tooltip (Feature 6)
-new Chart(document.getElementById('chart-oficinas'), {
-    type: 'bar',
-    data: {
-        labels: graficos.top_oficinas.map(o => o.oficina.split(/\s*[-=]\s*/)[0].trim()),
-        datasets: [{
-            data: graficos.top_oficinas.map(o => o.total),
-            backgroundColor: '#d97706',
-            borderRadius: 4,
-        }]
-    },
-    options: {
-        indexAxis: 'y',
-        responsive: true,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    afterLabel: function(ctx) {
-                        const vm = graficos.top_oficinas[ctx.dataIndex].valor_medio;
-                        return vm ? 'Valor medio: ' + formatBRL(vm) : '';
-                    }
-                }
-            },
-        },
-        scales: {
-            x: { display: false },
-            y: { ticks: { font: { size: 13 } } },
-        },
-    },
-    plugins: [datalabelsPlugin('dl-oficinas')]
-});
-
-// Peças vs Serviços (Donut — 2 fatias, válido)
-new Chart(document.getElementById('chart-tipo'), {
-    type: 'doughnut',
-    data: {
-        labels: Object.keys(graficos.dist_tipo).map(k => k === 'PCA' ? 'Peças' : 'Serviços'),
-        datasets: [{
-            data: Object.values(graficos.dist_tipo),
-            backgroundColor: ['#2563eb', '#16a34a'],
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'right', labels: { boxWidth: 14, font: { size: 13 } } },
-            tooltip: {
-                callbacks: {
-                    label: function(ctx) {
-                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                        const pct = total > 0 ? Math.round(ctx.raw / total * 100) : 0;
-                        return `${ctx.label}: ${formatBRL(ctx.raw)} (${pct}%)`;
-                    }
-                }
-            },
-        },
-    },
     plugins: [{
-        id: 'dl-tipo',
+        id: 'dl-veiculos',
         afterDatasetsDraw(chart) {
             const ctx = chart.ctx;
-            const ds = chart.data.datasets[0];
-            const total = ds.data.reduce((a, b) => a + b, 0);
-            if (total === 0) return;
-            // Percentual e valor em cada fatia
-            ds.data.forEach((val, i) => {
+            chart.data.datasets[0].data.forEach((val, i) => {
                 const meta = chart.getDatasetMeta(0).data[i];
-                const pos = meta.tooltipPosition();
-                const pct = Math.round(val / total * 100);
+                const label = 'R$ ' + Math.round(val).toLocaleString('pt-BR');
                 ctx.save();
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 14px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(`${pct}%`, pos.x, pos.y - 8);
-                ctx.font = '12px sans-serif';
-                ctx.fillText(formatBRL(val), pos.x, pos.y + 8);
+                ctx.fillStyle = corTexto;
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'bottom';
+                ctx.translate(meta.x, meta.y - 4);
+                ctx.rotate(-Math.PI / 3);
+                ctx.fillText(label, 0, 0);
                 ctx.restore();
             });
-            // Valor total no centro do donut
-            const {top, bottom, left, right} = chart.chartArea;
-            const cx = (left + right) / 2;
-            const cy = (top + bottom) / 2;
-            ctx.save();
-            ctx.fillStyle = corTexto;
-            ctx.font = 'bold 15px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(formatBRL(total), cx, cy);
-            ctx.restore();
         }
     }]
 });
 
-// OS por Setor (Horizontal Bar)
-const setorLabels = Object.keys(graficos.os_por_setor);
-const setorData = Object.values(graficos.os_por_setor);
-
-new Chart(document.getElementById('chart-setor'), {
-    type: 'bar',
-    data: {
-        labels: setorLabels,
-        datasets: [{
-            data: setorData,
-            backgroundColor: '#8b5cf6',
-            borderRadius: 4,
-        }]
-    },
-    options: {
-        indexAxis: 'y',
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { display: false },
-            y: { ticks: { font: { size: 13 } } },
-        },
-        onClick: (e, els) => {
-            if (els.length > 0) {
-                drillTo('setor', setorLabels[els[0].index]);
-            }
-        }
-    },
-    plugins: [datalabelsPlugin('dl-setor')]
-});
-
-// Bubble Veículos — dados compartilhados
+// 5. Bubble Veículos — dados compartilhados
 if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
     const scatterData = graficos.scatter_veiculos.map(v => ({x: v.qtd_os, y: v.custo_total, placa: v.placa}));
     const maxCusto = Math.max(...scatterData.map(d => d.y));
@@ -564,19 +555,7 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
     const maxQtd = Math.max(...scatterData.map(d => d.x));
     const iOutlier = scatterData.reduce((max, d, i) => d.y > scatterData[max].y ? i : max, 0);
 
-    // Escala de calor: amarelo claro → laranja → vermelho escuro
-    function custoToColor(custo) {
-        const t = (custo - minCusto) / range;
-        let r, g, b;
-        if (t < 0.5) {
-            const s = t * 2;
-            r = 255; g = Math.round(235 - s * 100); b = Math.round(59 - s * 39);
-        } else {
-            const s = (t - 0.5) * 2;
-            r = Math.round(255 - s * 75); g = Math.round(135 - s * 105); b = Math.round(20 - s * 10);
-        }
-        return `rgba(${r}, ${g}, ${b}, 0.65)`;
-    }
+    function custoToColor(custo) { return heatColor(custo, minCusto, maxCusto).replace('0.85)', '0.65)'); }
     const scatterColors = scatterData.map(d => custoToColor(d.y));
 
     // Escala logarítmica: base 6px, r = 6 + 34 * log(1 + t*9) / log(10)
@@ -678,6 +657,130 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
 
     criarBubbleChart('chart-scatter', radiiLog, 'log');
 }
+
+// 6. OS por Setor (Vertical Bar)
+const setorLabels = Object.keys(graficos.os_por_setor);
+const setorData = Object.values(graficos.os_por_setor);
+
+new Chart(document.getElementById('chart-setor'), {
+    type: 'bar',
+    data: {
+        labels: setorLabels,
+        datasets: [{
+            data: setorData,
+            backgroundColor: '#2563eb',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { display: false },
+            x: { ticks: { font: { size: 10 }, maxRotation: 90, minRotation: 45 } },
+        },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                drillTo('setor', setorLabels[els[0].index]);
+            }
+        }
+    },
+    plugins: [datalabelsPlugin('dl-setor')]
+});
+
+// 7. Top Oficinas (Vertical Bar) com valor médio no tooltip
+new Chart(document.getElementById('chart-oficinas'), {
+    type: 'bar',
+    data: {
+        labels: graficos.top_oficinas.map(o => o.oficina.split(/\s*[-=]\s*/)[0].trim()),
+        datasets: [{
+            data: graficos.top_oficinas.map(o => o.total),
+            backgroundColor: '#d97706',
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(ctx) {
+                        const vm = graficos.top_oficinas[ctx.dataIndex].valor_medio;
+                        return vm ? 'Valor medio: ' + formatBRL(vm) : '';
+                    }
+                }
+            },
+        },
+        scales: {
+            y: { display: false },
+            x: { ticks: { font: { size: 10 }, maxRotation: 90, minRotation: 45 } },
+        },
+    },
+    plugins: [datalabelsPlugin('dl-oficinas')]
+});
+
+// 8. Peças vs Serviços (Donut — 2 fatias, válido)
+new Chart(document.getElementById('chart-tipo'), {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(graficos.dist_tipo).map(k => k === 'PCA' ? 'Peças' : 'Serviços'),
+        datasets: [{
+            data: Object.values(graficos.dist_tipo),
+            backgroundColor: ['#2563eb', '#16a34a'],
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'right', labels: { boxWidth: 14, font: { size: 13 } } },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? Math.round(ctx.raw / total * 100) : 0;
+                        return `${ctx.label}: ${formatBRL(ctx.raw)} (${pct}%)`;
+                    }
+                }
+            },
+        },
+    },
+    plugins: [{
+        id: 'dl-tipo',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const ds = chart.data.datasets[0];
+            const total = ds.data.reduce((a, b) => a + b, 0);
+            if (total === 0) return;
+            // Percentual e valor em cada fatia
+            ds.data.forEach((val, i) => {
+                const meta = chart.getDatasetMeta(0).data[i];
+                const pos = meta.tooltipPosition();
+                const pct = Math.round(val / total * 100);
+                ctx.save();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${pct}%`, pos.x, pos.y - 8);
+                ctx.font = '12px sans-serif';
+                ctx.fillText(formatBRL(val), pos.x, pos.y + 8);
+                ctx.restore();
+            });
+            // Valor total no centro do donut
+            const {top, bottom, left, right} = chart.chartArea;
+            const cx = (left + right) / 2;
+            const cy = (top + bottom) / 2;
+            ctx.save();
+            ctx.fillStyle = corTexto;
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(formatBRL(total), cx, cy);
+            ctx.restore();
+        }
+    }]
+});
 
 // Filters
 function applyFilters() {

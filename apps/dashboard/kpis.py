@@ -211,6 +211,25 @@ def dados_graficos(inicio, fim, unidade=None):
         .order_by('-c')
     )
 
+    # OS por Unidade (combo: qtd OS + valor gasto) — apenas Executada/Em Execução
+    qs_unidade = qs.filter(status__in=['Executada', 'Em Execução'])
+    os_por_unidade_qs = list(
+        qs_unidade
+        .values('veiculo__unidade')
+        .annotate(qtd=Count('id'))
+        .order_by('-qtd')
+    )
+    valor_por_unidade = dict(
+        qs_unidade.filter(status='Executada')
+        .values_list('veiculo__unidade')
+        .annotate(total=Sum('valor_total'))
+    )
+    os_por_unidade = {
+        'labels': [u['veiculo__unidade'] or 'Sem Unidade' for u in os_por_unidade_qs],
+        'qtd': [u['qtd'] for u in os_por_unidade_qs],
+        'valor': [float(valor_por_unidade.get(u['veiculo__unidade'], 0)) for u in os_por_unidade_qs],
+    }
+
     # Feature 4: Evolução mensal peças vs serviços
     evolucao_tipo_qs = list(
         itens_qs.annotate(mes=TruncMonth('orcamento__manutencao__data_abertura'))
@@ -301,6 +320,16 @@ def dados_graficos(inicio, fim, unidade=None):
     else:
         tipo_insight = ""
 
+    # Unidade
+    if os_por_unidade['labels']:
+        top_unidade = os_por_unidade['labels'][0]
+        top_unidade_qtd = os_por_unidade['qtd'][0]
+        total_unidade = sum(os_por_unidade['qtd'])
+        unidade_pct = round(top_unidade_qtd / total_unidade * 100) if total_unidade else 0
+        unidade_insight = f"{top_unidade} concentra {unidade_pct}% das OS — {top_unidade_qtd} ordens"
+    else:
+        unidade_insight = ""
+
     # Setor
     if os_por_setor:
         total_setor = sum(os_por_setor.values())
@@ -331,6 +360,8 @@ def dados_graficos(inicio, fim, unidade=None):
         'tipo_insight': tipo_insight,
         'os_por_setor': os_por_setor,
         'setor_insight': setor_insight,
+        'os_por_unidade': os_por_unidade,
+        'unidade_insight': unidade_insight,
         'evolucao_tipo': evolucao_tipo,
         'scatter_veiculos': scatter_veiculos,
     }
