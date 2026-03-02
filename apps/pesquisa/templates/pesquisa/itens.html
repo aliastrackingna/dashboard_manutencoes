@@ -7,19 +7,19 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <form method="get" class="flex flex-wrap gap-3">
         <input type="text" name="q" value="{{ q }}" placeholder="Buscar peças ou serviços..."
-               class="flex-1 min-w-[200px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
-        <select name="tipo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+               class="flex-1 min-w-[200px] rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="tipo" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             <option value="">Todos os tipos</option>
             <option value="PCA" {% if tipo == 'PCA' %}selected{% endif %}>Peças (PCA)</option>
             <option value="SRV" {% if tipo == 'SRV' %}selected{% endif %}>Serviços (SRV)</option>
         </select>
-        <select name="grupo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="grupo" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             <option value="">Todos os grupos</option>
             {% for g in grupos_disponiveis %}
             <option value="{{ g }}" {% if grupo == g %}selected{% endif %}>{{ g }}</option>
             {% endfor %}
         </select>
-        <select name="periodo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="periodo" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             <option value="">Todo o período</option>
             {% for chave, label in periodos.items %}
             <option value="{{ chave }}" {% if periodo == chave %}selected{% endif %}>{{ label }}</option>

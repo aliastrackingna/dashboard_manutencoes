@@ -20,19 +20,6 @@
         }
     </style>
     <link rel="stylesheet" href="{% static 'css/print.css' %}">
-    <script>
-        (function () {
-            var html = document.documentElement;
-            var saved = localStorage.getItem('theme');
-            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            var isDark = saved ? saved === 'dark' : prefersDark;
-            if (isDark) {
-                html.classList.add('dark');
-            } else {
-                html.classList.remove('dark');
-            }
-        })();
-    </script>
     {% block extra_head %}{% endblock %}
 </head>
 

@@ -15,14 +15,14 @@
     <h1 class="text-2xl font-bold">Dashboard</h1>
 
     <div class="flex items-center gap-2">
-        <select id="unidade-select" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select id="unidade-select" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             <option value="">Todas as Unidades</option>
             <option value="__sem__" {% if unidade_param == '__sem__' %}selected{% endif %}>Sem Unidade</option>
             {% for u in unidades %}
             <option value="{{ u }}" {% if unidade_param == u %}selected{% endif %}>{{ u }}</option>
             {% endfor %}
         </select>
-        <select id="periodo-select" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select id="periodo-select" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             <option value="todos" {% if periodo == 'todos' %}selected{% endif %}>Todo o Período</option>
             <option value="anual" {% if periodo == 'anual' %}selected{% endif %}>Ano Corrente</option>
             <option value="30d" {% if periodo == '30d' %}selected{% endif %}>Últimos 30 dias</option>

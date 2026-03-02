@@ -14,8 +14,8 @@
     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
         <form method="get" class="flex gap-3">
             <input type="text" name="q" value="{{ q }}" placeholder="Buscar por placa, marca ou modelo..."
-                   class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
-            <select name="ativo" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+                   class="flex-1 rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <select name="ativo" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
                 <option value="">Todos</option>
                 <option value="1" {% if ativo == '1' %}selected{% endif %}>Ativos</option>
                 <option value="0" {% if ativo == '0' %}selected{% endif %}>Inativos</option>
