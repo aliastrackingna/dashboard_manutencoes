@@ -13,8 +13,9 @@ def upload(request):
         manutencoes_file = request.FILES.get('manutencoes')
         orcamentos_file = request.FILES.get('orcamentos')
         itens_file = request.FILES.get('itens')
+        multas_file = request.FILES.get('multas')
 
-        if not any([veiculos_file, manutencoes_file, orcamentos_file, itens_file]):
+        if not any([veiculos_file, manutencoes_file, orcamentos_file, itens_file, multas_file]):
             messages.warning(request, 'Selecione pelo menos um arquivo para importar.')
         else:
             relatorio = executar_pipeline(
@@ -22,6 +23,7 @@ def upload(request):
                 manutencoes_file=manutencoes_file,
                 orcamentos_file=orcamentos_file,
                 itens_file=itens_file,
+                multas_file=multas_file,
             )
             RegistroImportacao.objects.update_or_create(
                 pk=1,

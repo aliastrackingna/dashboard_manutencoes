@@ -3,6 +3,7 @@ from .parsers.veiculos import importar_veiculos
 from .parsers.manutencoes import importar_manutencoes
 from .parsers.orcamentos import importar_orcamentos
 from .parsers.itens import importar_itens
+from .parsers.multas import importar_multas
 
 
 @dataclass
@@ -14,6 +15,8 @@ class RelatorioImportacao:
     orcamentos_inseridos: int = 0
     orcamentos_atualizados: int = 0
     itens_inseridos: int = 0
+    multas_inseridas: int = 0
+    multas_ignoradas: int = 0
     erros: list = field(default_factory=list)
 
     @property
@@ -22,7 +25,8 @@ class RelatorioImportacao:
             self.veiculos_inseridos + self.veiculos_atualizados +
             self.manutencoes_inseridas + self.manutencoes_atualizadas +
             self.orcamentos_inseridos + self.orcamentos_atualizados +
-            self.itens_inseridos
+            self.itens_inseridos +
+            self.multas_inseridas
         )
 
     @property
@@ -31,7 +35,8 @@ class RelatorioImportacao:
 
 
 def executar_pipeline(veiculos_file=None, manutencoes_file=None,
-                      orcamentos_file=None, itens_file=None):
+                      orcamentos_file=None, itens_file=None,
+                      multas_file=None):
     relatorio = RelatorioImportacao()
 
     # 0. Veículos (se fornecido)
@@ -59,6 +64,13 @@ def executar_pipeline(veiculos_file=None, manutencoes_file=None,
     if itens_file:
         resultado = importar_itens(itens_file)
         relatorio.itens_inseridos = resultado['inseridos']
+        relatorio.erros.extend(resultado['erros'])
+
+    # 4. Multas
+    if multas_file:
+        resultado = importar_multas(multas_file)
+        relatorio.multas_inseridas = resultado['inseridos']
+        relatorio.multas_ignoradas = resultado['ignorados']
         relatorio.erros.extend(resultado['erros'])
 
     # Rebuild FTS5 index after import

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Multas de Trânsito — Manutenção Frota{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Multas de Trânsito</h1>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <form method="get" class="flex flex-wrap gap-3">
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por placa, modelo ou infração..."
+               class="flex-1 min-w-[200px] rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="por_pagina" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            {% for op in opcoes_por_pagina %}
+            <option value="{{ op }}" {% if por_pagina == op|stringformat:"d" %}selected{% endif %}>{{ op }} por página</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            Filtrar
+        </button>
+    </form>
+</div>
+
+<p class="text-sm text-gray-400 mb-4">{{ page.paginator.count }} resultado(s)</p>
+
+<div class="space-y-4">
+    {% for multa in page %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-3">
+                <span class="font-mono font-bold text-primary dark:text-blue-400">{{ multa.veiculo.placa }}</span>
+                <span class="text-sm text-gray-500">{{ multa.veiculo.marca }} {{ multa.veiculo.modelo }}</span>
+                {% if multa.veiculo.unidade %}
+                <span class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ multa.veiculo.unidade }}</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                    {% if multa.situacao == 'PAGA' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                    {% elif multa.situacao == 'CONTESTADA' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                    {% elif multa.situacao == 'BAIXADA' %}bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200
+                    {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                    {{ multa.get_situacao_display }}
+                </span>
+                <a href="{% url 'multas:editar' multa.auto_infracao %}"
+                   class="text-xs text-gray-400 hover:text-primary transition-colors">Editar</a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+                <p class="text-xs text-gray-400">Auto Infração</p>
+                <p class="font-mono font-semibold">{{ multa.auto_infracao }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Data / Hora</p>
+                <p class="font-semibold">{{ multa.data_infracao|date:"d/m/Y" }}{% if multa.hora_infracao %} às {{ multa.hora_infracao|time:"H:i" }}{% endif %}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Valor</p>
+                <p class="font-semibold">R$ {{ multa.valor|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Órgão Autuador</p>
+                <p class="font-semibold">{{ multa.orgao_autuador|default:"-" }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 text-sm">
+            <div>
+                <p class="text-xs text-gray-400">Descrição da Infração</p>
+                <p>{{ multa.descricao_infracao|default:"-" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Local</p>
+                <p>{{ multa.local_infracao|default:"-" }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm border-t border-gray-100 dark:border-gray-700 pt-3">
+            <div>
+                <p class="text-xs text-gray-400">Data Notificação</p>
+                <p>{% if multa.data_notificacao %}{{ multa.data_notificacao|date:"d/m/Y" }}{% else %}-{% endif %}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">Protocolo SEI</p>
+                <p>{{ multa.protocolo_sei|default:"-" }}</p>
+            </div>
+            <div class="col-span-2">
+                <p class="text-xs text-gray-400">Observação</p>
+                <p>{{ multa.observacao|default:"-" }}</p>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-gray-400 text-sm text-center py-8">Nenhuma multa encontrada.</p>
+    {% endfor %}
+</div>
+
+{% if page.has_other_pages %}
+<div class="mt-6 flex justify-center gap-2">
+    {% if page.has_previous %}
+    <a href="?page={{ page.previous_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}"
+       class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">&laquo; Anterior</a>
+    {% endif %}
+    <span class="px-3 py-1 text-sm text-gray-500">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+    <a href="?page={{ page.next_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}"
+       class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">Próxima &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

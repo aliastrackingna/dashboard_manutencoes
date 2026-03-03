@@ -33,6 +33,13 @@
                 <input type="file" name="itens" accept=".csv"
                        class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
             </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Multas de Trânsito (CSV)</label>
+                <input type="file" name="multas" accept=".csv"
+                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-primary hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400">
+                <p class="text-xs text-gray-400 mt-1">Duplicatas (mesmo Auto Infração) são ignoradas</p>
+            </div>
         </div>
 
         <button type="submit"
@@ -77,6 +84,17 @@
                 <p class="text-2xl font-bold text-green-600">{{ relatorio.itens_inseridos }}</p>
                 <p class="text-xs text-gray-500">Itens inseridos</p>
             </div>
+
+            {% if relatorio.multas_inseridas or relatorio.multas_ignoradas %}
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-green-600">{{ relatorio.multas_inseridas }}</p>
+                <p class="text-xs text-gray-500">Multas inseridas</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-2xl font-bold text-gray-400">{{ relatorio.multas_ignoradas }}</p>
+                <p class="text-xs text-gray-500">Multas ignoradas (duplicadas)</p>
+            </div>
+            {% endif %}
         </div>
 
         {% if relatorio.erros %}
