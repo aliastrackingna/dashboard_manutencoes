@@ -51,6 +51,36 @@
             {% if ultima_importacao %}Dados atualizados em {{ ultima_importacao.realizado_em|date:"d/m/Y" }} às {{ ultima_importacao.realizado_em|time:"H:i" }}{% else %}Nenhuma importação realizada{% endif %}
         </footer>
 
+        <script>
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            function openSidebar() {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                overlay.classList.remove('hidden');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                overlay.classList.add('hidden');
+            }
+
+            menuToggle.addEventListener('click', function () {
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    openSidebar();
+                } else {
+                    closeSidebar();
+                }
+            });
+
+            // Fechar ao clicar em um link do menu (mobile)
+            sidebar.querySelectorAll('a').forEach(function (link) {
+                link.addEventListener('click', closeSidebar);
+            });
+        </script>
         {% block extra_js %}{% endblock %}
 </body>
 

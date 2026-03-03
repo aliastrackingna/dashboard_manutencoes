@@ -1,4 +1,7 @@
-<aside class="w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:block overflow-y-auto">
+<div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden" onclick="closeSidebar()"></div>
+<aside id="sidebar" class="w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto
+    fixed top-16 left-0 bottom-0 z-40 -translate-x-full transition-transform duration-200 ease-in-out
+    md:static md:translate-x-0 md:block">
     <nav class="p-4 space-y-1">
         {% with request.resolver_match.url_name as current %}
         <a href="{% url 'dashboard:index' %}"

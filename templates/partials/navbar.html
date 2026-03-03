@@ -1,9 +1,12 @@
 <nav class="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 shadow-sm">
     <div class="flex items-center gap-3">
+        <button id="menu-toggle" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Abrir menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
         <a href="{% url 'dashboard:index' %}" class="text-xl font-bold text-primary dark:text-blue-400">
             Manutenção Frota
         </a>
-        <span class="text-sm text-gray-500 dark:text-gray-400">Dashboard de Manutenção</span>
+        <span class="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">Dashboard de Manutenção</span>
     </div>
 
     <div class="flex items-center gap-4">
