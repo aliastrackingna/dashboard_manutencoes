@@ -74,6 +74,9 @@ def importar_manutencoes(file):
         if data_encerramento:
             data_encerramento = timezone.make_aware(data_encerramento)
 
+        if status in ('Integrada Financeiro', 'XPTO'):
+            status = 'Executada'
+
         defaults = {
             'tipo': tipo,
             'empresa': empresa,

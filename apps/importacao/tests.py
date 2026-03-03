@@ -105,6 +105,24 @@ class ImportarManutencoesTest(TestCase):
         self.assertEqual(m.status, 'Executada')
         self.assertEqual(m.valor_total, Decimal('150.00'))
 
+    def test_status_integrada_financeiro_vira_executada(self):
+        csv = self._make_csv([
+            ['', '', '', '3', '2026 - 70', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Integrada Financeiro', '', '0,00', '0,00', '0,00'],
+        ])
+        importar_manutencoes(csv)
+        m = Manutencao.objects.get(numero_os='2026 - 70')
+        self.assertEqual(m.status, 'Executada')
+
+    def test_status_xpto_vira_executada(self):
+        csv = self._make_csv([
+            ['', '', '', '3', '2026 - 71', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'XPTO', '', '0,00', '0,00', '0,00'],
+        ])
+        importar_manutencoes(csv)
+        m = Manutencao.objects.get(numero_os='2026 - 71')
+        self.assertEqual(m.status, 'Executada')
+
     def test_auto_criar_veiculo_se_nao_existir(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 99', 'UNB', 'SG', 'NEW1234', '',
