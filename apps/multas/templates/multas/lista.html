@@ -19,6 +19,23 @@
     </form>
 </div>
 
+{% if placa or unidade %}
+<div class="flex items-center gap-2 mb-4 flex-wrap">
+    <span class="text-sm text-gray-400">Filtrando por:</span>
+    {% if placa %}
+    <span class="inline-flex items-center gap-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+        Placa: {{ placa }}
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if unidade %}unidade={{ unidade|urlencode }}&{% endif %}por_pagina={{ por_pagina }}" class="hover:text-red-500 transition-colors">&times;</a>
+    </span>
+    {% endif %}
+    {% if unidade %}
+    <span class="inline-flex items-center gap-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+        Unidade: {{ unidade }}
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if placa %}placa={{ placa|urlencode }}&{% endif %}por_pagina={{ por_pagina }}" class="hover:text-red-500 transition-colors">&times;</a>
+    </span>
+    {% endif %}
+</div>
+{% endif %}
 <p class="text-sm text-gray-400 mb-4">{{ page.paginator.count }} resultado(s)</p>
 
 <div class="space-y-4">
@@ -26,10 +43,12 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-3">
-                <span class="font-mono font-bold text-primary dark:text-blue-400">{{ multa.veiculo.placa }}</span>
+                <a href="?placa={{ multa.veiculo.placa|urlencode }}"
+                   class="font-mono font-bold text-primary dark:text-blue-400 hover:underline">{{ multa.veiculo.placa }}</a>
                 <span class="text-sm text-gray-500">{{ multa.veiculo.marca }} {{ multa.veiculo.modelo }}</span>
                 {% if multa.veiculo.unidade %}
-                <span class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ multa.veiculo.unidade }}</span>
+                <a href="?unidade={{ multa.veiculo.unidade|urlencode }}"
+                   class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer">{{ multa.veiculo.unidade }}</a>
                 {% endif %}
             </div>
             <div class="flex items-center gap-3">
@@ -98,12 +117,12 @@
 {% if page.has_other_pages %}
 <div class="mt-6 flex justify-center gap-2">
     {% if page.has_previous %}
-    <a href="?page={{ page.previous_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}"
+    <a href="?page={{ page.previous_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}{% if placa %}&placa={{ placa|urlencode }}{% endif %}{% if unidade %}&unidade={{ unidade|urlencode }}{% endif %}"
        class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">&laquo; Anterior</a>
     {% endif %}
     <span class="px-3 py-1 text-sm text-gray-500">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
     {% if page.has_next %}
-    <a href="?page={{ page.next_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}"
+    <a href="?page={{ page.next_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}{% if placa %}&placa={{ placa|urlencode }}{% endif %}{% if unidade %}&unidade={{ unidade|urlencode }}{% endif %}"
        class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">Próxima &raquo;</a>
     {% endif %}
 </div>

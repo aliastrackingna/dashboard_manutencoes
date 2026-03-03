@@ -12,6 +12,14 @@ OPCOES_POR_PAGINA = [15, 20, 30, 50, 100]
 def lista(request):
     qs = Multa.objects.select_related('veiculo').all()
 
+    placa = request.GET.get('placa', '').strip()
+    if placa:
+        qs = qs.filter(veiculo__placa=placa)
+
+    unidade = request.GET.get('unidade', '').strip()
+    if unidade:
+        qs = qs.filter(veiculo__unidade=unidade)
+
     q = request.GET.get('q', '').strip()
     if q:
         qs = qs.filter(
@@ -34,6 +42,8 @@ def lista(request):
     return render(request, 'multas/lista.html', {
         'page': page,
         'q': q,
+        'placa': placa,
+        'unidade': unidade,
         'por_pagina': str(por_pagina_int),
         'opcoes_por_pagina': OPCOES_POR_PAGINA,
     })
