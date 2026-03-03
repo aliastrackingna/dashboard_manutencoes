@@ -123,6 +123,7 @@ from .models import Veiculo
   ```
 
 ### Testing
+- **Toda feature nova deve ser acompanhada de testes**
 - Use Django `TestCase`
 - Use `Client()` for view tests
 - Name: `test_<description>`

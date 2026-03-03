@@ -17,6 +17,7 @@ class RelatorioImportacao:
     itens_inseridos: int = 0
     multas_inseridas: int = 0
     multas_ignoradas: int = 0
+    multas_ausentes: list = field(default_factory=list)
     erros: list = field(default_factory=list)
 
     @property
@@ -71,6 +72,7 @@ def executar_pipeline(veiculos_file=None, manutencoes_file=None,
         resultado = importar_multas(multas_file)
         relatorio.multas_inseridas = resultado['inseridos']
         relatorio.multas_ignoradas = resultado['ignorados']
+        relatorio.multas_ausentes = resultado.get('multas_ausentes', [])
         relatorio.erros.extend(resultado['erros'])
 
     # Rebuild FTS5 index after import

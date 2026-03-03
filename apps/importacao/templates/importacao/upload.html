@@ -105,9 +105,25 @@
             <div class="space-y-1 max-h-60 overflow-y-auto">
                 {% for erro in relatorio.erros %}
                 <div class="text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-3 py-2 rounded">
-                    <strong>Linha {{ erro.linha }}:</strong> [{{ erro.tipo }}] {{ erro.motivo }}
+                    {% if erro.linha %}<strong>Linha {{ erro.linha }}:</strong> {% endif %}[{{ erro.tipo }}] {{ erro.motivo }}
                 </div>
                 {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if relatorio.multas_ausentes %}
+        <div class="mt-4">
+            <h3 class="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mb-2">
+                Multas possivelmente pagas ({{ relatorio.multas_ausentes|length }})
+            </h3>
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded">
+                <p class="text-xs mb-2">As seguintes multas estão "Em Aberto" no sistema mas não aparecem no CSV importado. Verifique se foram pagas:</p>
+                <ul class="text-xs list-disc list-inside space-y-1">
+                    {% for auto in relatorio.multas_ausentes %}
+                    <li>{{ auto }}</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
         {% endif %}

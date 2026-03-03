@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from .models import Multa
-from .forms import MultaEditForm
+from .forms import MultaEditForm, MultaForm
 
 OPCOES_POR_PAGINA = [15, 20, 30, 50, 100]
 
@@ -47,6 +47,18 @@ def lista(request):
         'por_pagina': str(por_pagina_int),
         'opcoes_por_pagina': OPCOES_POR_PAGINA,
     })
+
+
+def criar(request):
+    if request.method == 'POST':
+        form = MultaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Multa cadastrada com sucesso.')
+            return redirect('multas:lista')
+    else:
+        form = MultaForm()
+    return render(request, 'multas/criar.html', {'form': form})
 
 
 def editar(request, auto_infracao):

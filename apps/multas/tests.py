@@ -81,6 +81,55 @@ class ImportarMultasTest(TestCase):
         self.assertEqual(len(resultado['erros']), 1)
         self.assertEqual(resultado['erros'][0]['tipo'], 'CAMPO_OBRIGATORIO')
 
+    def test_multas_ausentes_detecta_possiveis_pagamentos(self):
+        """Multas EM ABERTO no banco que não aparecem no CSV são reportadas."""
+        v = Veiculo.objects.get(placa='ABC1234')
+        Multa.objects.create(
+            auto_infracao='AI-ANTIGA', veiculo=v,
+            data_infracao='2026-01-10', valor=Decimal('100.00'),
+            situacao='EM ABERTO',
+        )
+        csv = _make_csv([
+            ['ABC1234', 'AI-NOVA', 'DETRAN-DF', '15/02/2026', '',
+             'Desc', '', '', '200,00'],
+        ])
+        resultado = importar_multas(csv)
+        self.assertEqual(resultado['inseridos'], 1)
+        self.assertIn('AI-ANTIGA', resultado['multas_ausentes'])
+        erros_verificar = [e for e in resultado['erros'] if e['tipo'] == 'VERIFICAR_PAGAMENTO']
+        self.assertEqual(len(erros_verificar), 1)
+        self.assertIn('AI-ANTIGA', erros_verificar[0]['motivo'])
+
+    def test_multas_ausentes_ignora_pagas(self):
+        """Multas já marcadas como PAGA não aparecem como ausentes."""
+        v = Veiculo.objects.get(placa='ABC1234')
+        Multa.objects.create(
+            auto_infracao='AI-PAGA', veiculo=v,
+            data_infracao='2026-01-10', valor=Decimal('100.00'),
+            situacao='PAGA',
+        )
+        csv = _make_csv([
+            ['ABC1234', 'AI-NOVA2', 'DETRAN-DF', '15/02/2026', '',
+             'Desc', '', '', '200,00'],
+        ])
+        resultado = importar_multas(csv)
+        self.assertNotIn('AI-PAGA', resultado.get('multas_ausentes', []))
+
+    def test_multas_ausentes_vazio_quando_todas_no_csv(self):
+        """Se todas as multas EM ABERTO estão no CSV, lista fica vazia."""
+        v = Veiculo.objects.get(placa='ABC1234')
+        Multa.objects.create(
+            auto_infracao='AI-EXISTENTE', veiculo=v,
+            data_infracao='2026-01-10', valor=Decimal('100.00'),
+            situacao='EM ABERTO',
+        )
+        csv = _make_csv([
+            ['ABC1234', 'AI-EXISTENTE', 'DETRAN-DF', '15/02/2026', '',
+             'Desc', '', '', '200,00'],
+        ])
+        resultado = importar_multas(csv)
+        self.assertEqual(resultado['multas_ausentes'], [])
+
 
 class MultaViewTest(TestCase):
     def setUp(self):
@@ -155,3 +204,82 @@ class MultaViewTest(TestCase):
         multa = Multa.objects.get(auto_infracao='AI-100')
         self.assertEqual(multa.valor, Decimal('293.47'))
         self.assertEqual(multa.descricao_infracao, 'Avançar sinal vermelho')
+
+    def test_criar_get(self):
+        response = self.client.get(reverse('multas:criar'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Nova Multa')
+
+    def test_criar_post_valido(self):
+        response = self.client.post(reverse('multas:criar'), {
+            'auto_infracao': 'AI-200',
+            'veiculo': 'ABC1234',
+            'orgao_autuador': 'DETRAN-DF',
+            'data_infracao': '2026-03-01',
+            'hora_infracao': '10:30',
+            'descricao_infracao': 'Estacionar em local proibido',
+            'local_infracao': 'SQN 308',
+            'data_notificacao': '2026-03-05',
+            'valor': '195.23',
+            'protocolo_sei': 'SEI-2026/010',
+            'situacao': 'EM ABERTO',
+            'observacao': '',
+        })
+        self.assertRedirects(response, reverse('multas:lista'))
+        multa = Multa.objects.get(auto_infracao='AI-200')
+        self.assertEqual(multa.veiculo.placa, 'ABC1234')
+        self.assertEqual(multa.valor, Decimal('195.23'))
+        self.assertEqual(multa.orgao_autuador, 'DETRAN-DF')
+        self.assertEqual(multa.local_infracao, 'SQN 308')
+
+    def test_criar_post_campos_minimos(self):
+        response = self.client.post(reverse('multas:criar'), {
+            'auto_infracao': 'AI-201',
+            'veiculo': 'ABC1234',
+            'data_infracao': '2026-03-01',
+            'valor': '100.00',
+            'situacao': 'EM ABERTO',
+            'orgao_autuador': '',
+            'hora_infracao': '',
+            'descricao_infracao': '',
+            'local_infracao': '',
+            'data_notificacao': '',
+            'protocolo_sei': '',
+            'observacao': '',
+        })
+        self.assertRedirects(response, reverse('multas:lista'))
+        self.assertTrue(Multa.objects.filter(auto_infracao='AI-201').exists())
+
+    def test_criar_post_invalido_sem_placa(self):
+        response = self.client.post(reverse('multas:criar'), {
+            'auto_infracao': 'AI-202',
+            'veiculo': '',
+            'data_infracao': '2026-03-01',
+            'valor': '100.00',
+            'situacao': 'EM ABERTO',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Multa.objects.filter(auto_infracao='AI-202').exists())
+
+    def test_criar_post_auto_infracao_duplicado(self):
+        response = self.client.post(reverse('multas:criar'), {
+            'auto_infracao': 'AI-100',
+            'veiculo': 'ABC1234',
+            'data_infracao': '2026-03-01',
+            'valor': '50.00',
+            'situacao': 'EM ABERTO',
+            'orgao_autuador': '',
+            'hora_infracao': '',
+            'descricao_infracao': '',
+            'local_infracao': '',
+            'data_notificacao': '',
+            'protocolo_sei': '',
+            'observacao': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Multa.objects.filter(auto_infracao='AI-100').count(), 1)
+
+    def test_lista_tem_botao_nova_multa(self):
+        response = self.client.get(reverse('multas:lista'))
+        self.assertContains(response, reverse('multas:criar'))
+        self.assertContains(response, 'Nova Multa')

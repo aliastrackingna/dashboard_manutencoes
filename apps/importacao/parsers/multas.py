@@ -14,9 +14,12 @@ def importar_multas(file):
     inseridos = 0
     ignorados = 0
     erros = []
+    autos_no_csv = set()
 
     for idx, row in df.iterrows():
         auto_infracao = str(row.get('Auto Infração', row.get('Auto Infracao', ''))).strip()
+        if auto_infracao:
+            autos_no_csv.add(auto_infracao)
         if not auto_infracao:
             erros.append({
                 'linha': idx + 2,
@@ -90,8 +93,23 @@ def importar_multas(file):
         )
         inseridos += 1
 
+    # Detectar multas "em aberto" no banco que não aparecem no CSV
+    multas_ausentes = list(
+        Multa.objects.filter(situacao='EM ABERTO')
+        .exclude(auto_infracao__in=autos_no_csv)
+        .values_list('auto_infracao', flat=True)
+    )
+    if multas_ausentes:
+        autos_str = ', '.join(multas_ausentes)
+        erros.append({
+            'linha': 0,
+            'tipo': 'VERIFICAR_PAGAMENTO',
+            'motivo': f'Verificar se as multas ({autos_str}) foram pagas.',
+        })
+
     return {
         'inseridos': inseridos,
         'ignorados': ignorados,
         'erros': erros,
+        'multas_ausentes': multas_ausentes,
     }
