@@ -262,11 +262,23 @@ class FiltroUnidadeTest(TestCase):
         response = self.client.get(reverse('dashboard:lista'), {'unidade': 'XYZ'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['page'].paginator.count, 1)
+        placas = [os.veiculo.placa for os in response.context['page']]
+        self.assertEqual(placas, ['UNI0002'])
 
     def test_lista_drilldown_filtro_sem_unidade(self):
         response = self.client.get(reverse('dashboard:lista'), {'unidade': '__sem__'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['page'].paginator.count, 1)
+        placas = [os.veiculo.placa for os in response.context['page']]
+        self.assertEqual(placas, ['UNI0003'])
+
+    def test_lista_drilldown_filtro_drilldown_unidade(self):
+        response = self.client.get(reverse('dashboard:lista'), {'filtro': 'unidade', 'valor': 'ABC'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['page'].paginator.count, 1)
+        placas = [os.veiculo.placa for os in response.context['page']]
+        self.assertEqual(placas, ['UNI0001'])
+        self.assertIn('Unidade', response.context['titulo'])
 
     def test_api_kpis_filtro_unidade(self):
         response = self.client.get(reverse('dashboard:api_kpis'), {'unidade': 'ABC'})

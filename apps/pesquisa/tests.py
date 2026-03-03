@@ -43,6 +43,17 @@ def _setup_data():
         codigo_item='PLACA12', descricao='FILTRO DE OLEO', marca='WEGA',
         valor_unit=Decimal('53.40'), qtd=Decimal('1'), total=Decimal('53.40'),
     )
+    # Orçamento recusado com item exclusivo
+    orc_recusado = Orcamento.objects.create(
+        manutencao=m, codigo_orcamento=101,
+        data=datetime(2026, 2, 1).date(),
+        oficina='Oficina Recusada', valor=Decimal('2000'), status='Recusado',
+    )
+    ItemOrcamento.objects.create(
+        orcamento=orc_recusado, tipo='PCA', grupo='Filtros',
+        codigo_item='PLACA99', descricao='PASTILHA DE FREIO', marca='FRAS-LE',
+        valor_unit=Decimal('120.00'), qtd=Decimal('2'), total=Decimal('240.00'),
+    )
     return orc
 
 
@@ -145,3 +156,25 @@ class PesquisaViewTest(TransactionTestCase):
     def test_filtro_tipo(self):
         response = self.client.get(reverse('pesquisa:itens'), {'tipo': 'PCA'})
         self.assertEqual(response.status_code, 200)
+
+    def test_filtro_aprovado_exclui_recusado(self):
+        """Com aprovado=1, itens de orçamentos recusados não aparecem."""
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'PASTILHA', 'aprovado': '1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['resultados']), 0)
+
+    def test_filtro_aprovado_mantem_executado(self):
+        """Com aprovado=1, itens de orçamentos aprovados continuam aparecendo."""
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'OLEO', 'aprovado': '1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context['resultados']) > 0)
+        descricoes = [r['descricao'] for r in response.context['resultados']]
+        self.assertIn('OLEO MOTOR', descricoes)
+
+    def test_sem_filtro_aprovado_mostra_todos(self):
+        """Sem aprovado, itens de todos os orçamentos aparecem."""
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'PASTILHA'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context['resultados']) > 0)
+        descricoes = [r['descricao'] for r in response.context['resultados']]
+        self.assertIn('PASTILHA DE FREIO', descricoes)

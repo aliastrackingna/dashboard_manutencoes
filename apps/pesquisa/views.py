@@ -38,6 +38,7 @@ def itens(request):
     tipo = request.GET.get('tipo', '')
     grupo = request.GET.get('grupo', '')
     periodo = request.GET.get('periodo', '')
+    aprovado = request.GET.get('aprovado', '')
 
     resultados = []
     grupos_disponiveis = get_grupos()
@@ -49,6 +50,10 @@ def itens(request):
         if item_ids:
             # Aggregate results by description
             items_qs = ItemOrcamento.objects.filter(id__in=item_ids)
+            if aprovado:
+                items_qs = items_qs.filter(
+                    orcamento__status__in=['Escolhido', 'Executado', 'Em Execução'],
+                )
             if grupo:
                 items_qs = items_qs.filter(grupo=grupo)
             if periodo:
@@ -68,12 +73,18 @@ def itens(request):
             )
 
             for item in agrupados:
-                # Get related OS info
-                sample_items = ItemOrcamento.objects.filter(
+                sample_qs = items_qs.filter(
                     descricao=item['descricao'],
+                    marca=item['marca'],
                     tipo=item['tipo'],
-                    id__in=item_ids,
-                ).select_related('orcamento__manutencao')[:5]
+                    grupo=item['grupo'],
+                    codigo_item=item['codigo_item'],
+                )
+                sample_items = (
+                    sample_qs
+                    .select_related('orcamento__manutencao')
+                    .order_by('-orcamento__manutencao__data_abertura')[:5]
+                )
 
                 item['exemplos'] = [
                     {
@@ -93,6 +104,7 @@ def itens(request):
         'grupo': grupo,
         'periodo': periodo,
         'periodos': PERIODOS,
+        'aprovado': aprovado,
         'resultados': resultados,
         'grupos_disponiveis': grupos_disponiveis,
     })

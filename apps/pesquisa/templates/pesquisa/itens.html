@@ -19,6 +19,10 @@
             <option value="{{ g }}" {% if grupo == g %}selected{% endif %}>{{ g }}</option>
             {% endfor %}
         </select>
+        <select name="aprovado" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="">Todos os orçamentos</option>
+            <option value="1" {% if aprovado %}selected{% endif %}>Apenas aprovados</option>
+        </select>
         <select name="periodo" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             <option value="">Todo o período</option>
             {% for chave, label in periodos.items %}
@@ -76,7 +80,7 @@
 
         {% if item.exemplos %}
         <div class="mt-3 border-t border-gray-100 dark:border-gray-700 pt-2">
-            <p class="text-xs text-gray-400 mb-1">Encontrado em:</p>
+            <p class="text-xs text-gray-400 mb-1">Últimas OS com este item:</p>
             <div class="flex flex-wrap gap-2">
                 {% for ex in item.exemplos %}
                 <a href="{% url 'manutencoes:detalhe' ex.os %}"

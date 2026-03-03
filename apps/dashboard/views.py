@@ -119,6 +119,9 @@ def lista_drilldown(request):
     elif filtro == 'veiculo' and valor:
         qs = qs.filter(veiculo__placa=valor)
         titulo = f'OS — Veículo: {valor}'
+    elif filtro == 'unidade' and valor:
+        qs = qs.filter(veiculo__unidade=valor)
+        titulo = f'OS — Unidade: {valor}'
     elif filtro == 'mes' and valor:
         try:
             from datetime import datetime as dt
