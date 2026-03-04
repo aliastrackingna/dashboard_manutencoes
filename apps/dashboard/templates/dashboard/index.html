@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load format_brl %}
 {% block title %}Dashboard — Manutenção Frota{% endblock %}
 
 {% block content %}
@@ -40,7 +41,7 @@
 </div>
 
 <!-- KPI Cards -->
-<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
     {% with t=kpis.tendencias th=thresholds %}
     <!-- Linha 1: Demanda / Producao / Qualidade / Agilidade -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.total_os %}{{ th.total_os }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
@@ -78,16 +79,27 @@
             {{ kpis.pct_prazo }}%
         </p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.tempo_medio_dias %}{{ th.tempo_medio_dias }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.tempo_medio_pecas %}{{ th.tempo_medio_pecas }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-gray-400" title="Media de dias entre abertura e encerramento das OS executadas">Tempo Medio Resolucao <span class="cursor-help text-gray-300">(i)</span></p>
-            {% if t and t.tempo_medio_dias != None %}
-            <span class="text-xs font-semibold {% if t.tempo_medio_dias > 0 %}text-red-500{% elif t.tempo_medio_dias < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
-                {% if t.tempo_medio_dias > 0 %}&#9650;{% elif t.tempo_medio_dias < 0 %}&#9660;{% endif %} {{ t.tempo_medio_dias }}%
+            <p class="text-xs text-gray-400" title="Media de dias para OS executadas com orcamentos somente de pecas">Tempo Medio Pecas <span class="cursor-help text-gray-300">(i)</span></p>
+            {% if t and t.tempo_medio_pecas != None %}
+            <span class="text-xs font-semibold {% if t.tempo_medio_pecas > 0 %}text-red-500{% elif t.tempo_medio_pecas < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.tempo_medio_pecas > 0 %}&#9650;{% elif t.tempo_medio_pecas < 0 %}&#9660;{% endif %} {{ t.tempo_medio_pecas }}%
             </span>
             {% endif %}
         </div>
-        <p class="text-2xl font-bold">{{ kpis.tempo_medio_dias }} dias</p>
+        <p class="text-2xl font-bold">{{ kpis.tempo_medio_pecas }} dias</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.tempo_medio_geral %}{{ th.tempo_medio_geral }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-gray-400" title="Media de dias para OS executadas com servicos e/ou pecas">Tempo Medio Geral <span class="cursor-help text-gray-300">(i)</span></p>
+            {% if t and t.tempo_medio_geral != None %}
+            <span class="text-xs font-semibold {% if t.tempo_medio_geral > 0 %}text-red-500{% elif t.tempo_medio_geral < 0 %}text-green-500{% else %}text-gray-400{% endif %}">
+                {% if t.tempo_medio_geral > 0 %}&#9650;{% elif t.tempo_medio_geral < 0 %}&#9660;{% endif %} {{ t.tempo_medio_geral }}%
+            </span>
+            {% endif %}
+        </div>
+        <p class="text-2xl font-bold">{{ kpis.tempo_medio_geral }} dias</p>
     </div>
     <!-- Linha 2: Financeiro -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.valor_aprovado_executado %}{{ th.valor_aprovado_executado }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
@@ -99,7 +111,7 @@
             </span>
             {% endif %}
         </div>
-        <p class="text-2xl font-bold text-blue-600">R$ {{ kpis.valor_aprovado_executado|floatformat:2 }}</p>
+        <p class="text-2xl font-bold text-blue-600">R$ {{ kpis.valor_aprovado_executado|brl }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.valor_total_executado %}{{ th.valor_total_executado }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
@@ -110,7 +122,7 @@
             </span>
             {% endif %}
         </div>
-        <p class="text-2xl font-bold text-green-600">R$ {{ kpis.valor_total_executado|floatformat:2 }}</p>
+        <p class="text-2xl font-bold text-green-600">R$ {{ kpis.valor_total_executado|brl }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.ticket_medio %}{{ th.ticket_medio }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
@@ -121,7 +133,7 @@
             </span>
             {% endif %}
         </div>
-        <p class="text-2xl font-bold">R$ {{ kpis.ticket_medio|floatformat:2 }}</p>
+        <p class="text-2xl font-bold">R$ {{ kpis.ticket_medio|brl }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 {% if th.custo_por_veiculo %}{{ th.custo_por_veiculo }}{% else %}border-gray-200 dark:border-gray-700{% endif %} p-4">
         <div class="flex items-center justify-between mb-1">
@@ -132,7 +144,7 @@
             </span>
             {% endif %}
         </div>
-        <p class="text-2xl font-bold">R$ {{ kpis.custo_por_veiculo|floatformat:2 }}</p>
+        <p class="text-2xl font-bold">R$ {{ kpis.custo_por_veiculo|brl }}</p>
     </div>
     {% endwith %}
 </div>
@@ -181,9 +193,9 @@
         <canvas id="chart-scatter" height="250"></canvas>
     </div>
 
-    <!-- 6. OS por Setor -->
+    <!-- 6. Distribuição de OS por Categoria -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <h3 class="text-sm font-semibold mb-1">OS por Setor</h3>
+        <h3 class="text-sm font-semibold mb-1">Distribuição de Ordens de Serviço por Categoria</h3>
         {% if graficos.setor_insight %}
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ graficos.setor_insight }}</p>
         {% endif %}

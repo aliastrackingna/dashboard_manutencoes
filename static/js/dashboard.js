@@ -509,8 +509,8 @@ new Chart(document.getElementById('chart-oficinas'), {
                 borderRadius: 4,
             },
             {
-                label: 'Restante',
-                data: graficos.top_oficinas.map(o => o.total - o.aprovados),
+                label: 'Pendentes',
+                data: graficos.top_oficinas.map(o => o.pendentes),
                 backgroundColor: '#60a5fa',
                 borderRadius: 4,
             }
@@ -525,11 +525,12 @@ new Chart(document.getElementById('chart-oficinas'), {
                     afterLabel: function(ctx) {
                         const vm = graficos.top_oficinas[ctx.dataIndex].valor_medio;
                         const apr = graficos.top_oficinas[ctx.dataIndex].aprovados;
+                        const pend = graficos.top_oficinas[ctx.dataIndex].pendentes;
                         const total = graficos.top_oficinas[ctx.dataIndex].total;
                         let txt = '';
                         if (vm) txt += 'Valor medio: ' + formatBRL(vm);
                         if (txt) txt += '\n';
-                        txt += `Total: ${total} | Aprovados: ${apr}`;
+                        txt += `Total: ${total} | Aprovados: ${apr} | Pendentes: ${pend}`;
                         return txt;
                     }
                 }
@@ -540,7 +541,7 @@ new Chart(document.getElementById('chart-oficinas'), {
             y: { 
                 display: true,
                 beginAtZero: true,
-                suggestedMax: Math.ceil(Math.max(...graficos.top_oficinas.map(o => Math.max(o.aprovados, o.total - o.aprovados))) / 5) * 5 + 5,
+                suggestedMax: Math.ceil(Math.max(...graficos.top_oficinas.map(o => Math.max(o.aprovados, o.pendentes))) / 5) * 5 + 5,
                 ticks: { 
                     stepSize: 5,
                     color: corTexto,

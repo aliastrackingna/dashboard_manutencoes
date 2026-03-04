@@ -47,24 +47,68 @@ class KPIsTest(TestCase):
         self.assertAlmostEqual(kpis['ticket_medio'], 300.0)
 
     def test_pct_prazo(self):
-        self._criar_os('OS-1',
-            data_previsao=timezone.make_aware(datetime(2026, 2, 20)),
-            data_encerramento=timezone.make_aware(datetime(2026, 2, 18)),
+        # OS dentro do prazo: execução em 5 dias, previsão = 7
+        m1 = self._criar_os('OS-1',
+            inicio_execucao=timezone.make_aware(datetime(2026, 2, 10)),
+            fim_execucao=timezone.make_aware(datetime(2026, 2, 15)),
         )
-        self._criar_os('OS-2',
-            data_previsao=timezone.make_aware(datetime(2026, 2, 15)),
-            data_encerramento=timezone.make_aware(datetime(2026, 2, 25)),
+        orc1 = Orcamento.objects.create(
+            manutencao=m1, codigo_orcamento=9901,
+            data=datetime(2026, 2, 10).date(), oficina='OFC',
+            valor=Decimal('500'), status='Executado', previsao_em_dias=7,
+        )
+        # OS fora do prazo: execução em 10 dias, previsão = 5
+        m2 = self._criar_os('OS-2',
+            inicio_execucao=timezone.make_aware(datetime(2026, 2, 10)),
+            fim_execucao=timezone.make_aware(datetime(2026, 2, 20)),
+        )
+        orc2 = Orcamento.objects.create(
+            manutencao=m2, codigo_orcamento=9902,
+            data=datetime(2026, 2, 10).date(), oficina='OFC',
+            valor=Decimal('500'), status='Executado', previsao_em_dias=5,
         )
         kpis = calcular_kpis(self.inicio, self.fim)
         self.assertEqual(kpis['pct_prazo'], 50.0)
 
-    def test_tempo_medio_resolucao(self):
-        self._criar_os('OS-1',
+    def test_tempo_medio_pecas(self):
+        m = self._criar_os('OS-1',
             data_abertura=timezone.make_aware(datetime(2026, 2, 1)),
             data_encerramento=timezone.make_aware(datetime(2026, 2, 11)),
         )
+        orc = Orcamento.objects.create(
+            manutencao=m, codigo_orcamento=5001,
+            data=datetime(2026, 2, 2).date(), oficina='OFC',
+            valor=Decimal('500'), status='Executado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc, tipo='PCA', descricao='FILTRO',
+            valor_unit=Decimal('100'), qtd=Decimal('1'), total=Decimal('100'),
+        )
         kpis = calcular_kpis(self.inicio, self.fim)
-        self.assertAlmostEqual(kpis['tempo_medio_dias'], 10.0)
+        self.assertAlmostEqual(kpis['tempo_medio_pecas'], 10.0)
+        self.assertEqual(kpis['tempo_medio_geral'], 0)
+
+    def test_tempo_medio_geral(self):
+        m = self._criar_os('OS-1',
+            data_abertura=timezone.make_aware(datetime(2026, 2, 1)),
+            data_encerramento=timezone.make_aware(datetime(2026, 2, 16)),
+        )
+        orc = Orcamento.objects.create(
+            manutencao=m, codigo_orcamento=5002,
+            data=datetime(2026, 2, 2).date(), oficina='OFC',
+            valor=Decimal('800'), status='Executado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc, tipo='PCA', descricao='PECA',
+            valor_unit=Decimal('200'), qtd=Decimal('1'), total=Decimal('200'),
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc, tipo='SRV', descricao='MAO DE OBRA',
+            valor_unit=Decimal('300'), qtd=Decimal('1'), total=Decimal('300'),
+        )
+        kpis = calcular_kpis(self.inicio, self.fim)
+        self.assertAlmostEqual(kpis['tempo_medio_geral'], 15.0)
+        self.assertEqual(kpis['tempo_medio_pecas'], 0)
 
     def test_sem_dados(self):
         kpis = calcular_kpis(self.inicio, self.fim)

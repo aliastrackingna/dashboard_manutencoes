@@ -77,20 +77,48 @@ def _calcular_kpis_raw(inicio, fim, unidade=None):
         status__in=['Autorizada Execução', 'Em Execução', 'Executada']
     ).aggregate(s=Sum('valor_total'))['s'] or Decimal('0')
 
+    # OS Dentro do Prazo: executadas com início/fim execução preenchidos
+    # e orçamento executado com previsão em dias > 0
     com_prazo = executadas.filter(
-        data_encerramento__isnull=False,
-        data_previsao__isnull=False,
-    )
-    dentro_prazo = com_prazo.filter(data_encerramento__lte=F('data_previsao')).count()
+        inicio_execucao__isnull=False,
+        fim_execucao__isnull=False,
+        orcamentos__status='Executado',
+        orcamentos__previsao_em_dias__gt=0,
+    ).distinct()
+    dentro_prazo = 0
+    for m in com_prazo:
+        dias_execucao = (m.fim_execucao - m.inicio_execucao).total_seconds() / 86400
+        previsao = m.orcamentos.filter(
+            status='Executado', previsao_em_dias__gt=0
+        ).first().previsao_em_dias
+        if dias_execucao <= previsao:
+            dentro_prazo += 1
     total_com_prazo = com_prazo.count()
     pct_prazo = round(dentro_prazo / total_com_prazo * 100, 1) if total_com_prazo > 0 else 0
 
     resolvidas = executadas.filter(data_encerramento__isnull=False)
-    if resolvidas.exists():
-        tempos = [(m.data_encerramento - m.data_abertura).total_seconds() / 86400 for m in resolvidas]
-        tempo_medio = round(sum(tempos) / len(tempos), 1)
-    else:
-        tempo_medio = 0
+
+    # OS com pelo menos um item de serviço nos orçamentos executados
+    os_com_servico = resolvidas.filter(
+        orcamentos__status='Executado',
+        orcamentos__itens__tipo='SRV',
+    ).distinct()
+    # OS somente com peças (tem itens PCA mas nenhum SRV)
+    os_somente_pecas = resolvidas.filter(
+        orcamentos__status='Executado',
+        orcamentos__itens__tipo='PCA',
+    ).exclude(
+        id__in=os_com_servico.values('id')
+    ).distinct()
+
+    def _tempo_medio(qs):
+        if qs.exists():
+            tempos = [(m.data_encerramento - m.data_abertura).total_seconds() / 86400 for m in qs]
+            return round(sum(tempos) / len(tempos), 1)
+        return 0
+
+    tempo_medio_pecas = _tempo_medio(os_somente_pecas)
+    tempo_medio_geral = _tempo_medio(os_com_servico)
 
     # Custo por veículo
     veiculos_distintos = executadas.values('veiculo').distinct().count()
@@ -102,7 +130,8 @@ def _calcular_kpis_raw(inicio, fim, unidade=None):
         'valor_aprovado_executado': float(aprovado_executado),
         'ticket_medio': float(ticket_medio),
         'pct_prazo': pct_prazo,
-        'tempo_medio_dias': tempo_medio,
+        'tempo_medio_pecas': tempo_medio_pecas,
+        'tempo_medio_geral': tempo_medio_geral,
         'total_executadas': total_executadas,
         'custo_por_veiculo': custo_por_veiculo,
     }
@@ -129,8 +158,8 @@ def calcular_kpis(inicio, fim, unidade=None):
         ant = _calcular_kpis_raw(ant_inicio, ant_fim, unidade)
         tendencias = {}
         for chave in ['total_os', 'valor_total_executado', 'valor_aprovado_executado',
-                       'ticket_medio', 'pct_prazo', 'tempo_medio_dias', 'total_executadas',
-                       'custo_por_veiculo']:
+                       'ticket_medio', 'pct_prazo', 'tempo_medio_pecas', 'tempo_medio_geral',
+                       'total_executadas', 'custo_por_veiculo']:
             atual = kpis[chave]
             anterior = ant[chave]
             if anterior and anterior != 0:
@@ -193,6 +222,13 @@ def dados_graficos(inicio, fim, unidade=None):
             aprovados=Sum(
                 Case(
                     When(status__in=['Escolhido', 'Executado', 'Em Execução'], then=1),
+                    default=0,
+                    output_field=IntegerField()
+                )
+            ),
+            pendentes=Sum(
+                Case(
+                    When(status='Lançado', then=1),
                     default=0,
                     output_field=IntegerField()
                 )
@@ -364,7 +400,8 @@ def dados_graficos(inicio, fim, unidade=None):
         'top_oficinas': [
             {'oficina': o['oficina'][:40], 'total': o['total'],
              'valor_medio': round(float(o['valor_medio']), 2) if o['valor_medio'] else 0,
-             'aprovados': o.get('aprovados', 0)}
+             'aprovados': o.get('aprovados', 0),
+             'pendentes': o.get('pendentes', 0)}
             for o in top_oficinas
         ],
         'oficinas_insight': oficinas_insight,

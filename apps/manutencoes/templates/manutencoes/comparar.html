@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load format_brl %}
 {% block title %}Comparar Orçamentos — OS {{ manutencao.numero_os }} — Manutenção Frota{% endblock %}
 
 {% block content %}
@@ -76,10 +77,10 @@
                         {% elif celula.classe == 'exclusivo' %}bg-yellow-50 dark:bg-yellow-900/30{% endif %}">
                         {% if celula.item %}
                         <div class="font-semibold {% if celula.exclusivo %}italic{% endif %}">
-                            R$ {{ celula.item.total|floatformat:2 }}
+                            R$ {{ celula.item.total|brl }}
                         </div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ celula.item.qtd|floatformat:0 }}x R$ {{ celula.item.valor_unit|floatformat:2 }}
+                            {{ celula.item.qtd|floatformat:0 }}x R$ {{ celula.item.valor_unit|brl }}
                         </div>
                         {% if celula.item.marca %}
                         <div class="text-xs text-gray-400">{{ celula.item.marca }}</div>
@@ -99,7 +100,7 @@
                     </td>
                     {% for orc in orcamentos %}
                     <td class="px-4 py-3 text-center text-base">
-                        R$ {{ orc.valor|floatformat:2 }}
+                        R$ {{ orc.valor|brl }}
                     </td>
                     {% endfor %}
                 </tr>

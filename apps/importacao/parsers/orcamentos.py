@@ -43,6 +43,13 @@ def importar_orcamentos(file):
         oficina = str(row.get('oficina', '')).strip()
         valor = parse_decimal_br(str(row.get('valor', '')).strip())
         status = str(row.get('status', '')).strip()
+        if status == 'Integrado ao Financeiro':
+            status = 'Executado'
+        previsao_str = str(row.get('previsao_em_dias', '')).strip()
+        try:
+            previsao_em_dias = int(previsao_str) if previsao_str else 0
+        except ValueError:
+            previsao_em_dias = 0
 
         _, created = Orcamento.objects.update_or_create(
             codigo_orcamento=codigo_orcamento,
@@ -52,6 +59,7 @@ def importar_orcamentos(file):
                 'oficina': oficina,
                 'valor': valor,
                 'status': status,
+                'previsao_em_dias': previsao_em_dias,
             },
         )
         if created:

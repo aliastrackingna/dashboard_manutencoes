@@ -13,8 +13,9 @@ from .kpis import get_periodo, calcular_kpis, dados_graficos
 
 
 # KPIs onde menor = melhor (threshold invertido)
-_MENOR_MELHOR = {'ticket_medio', 'tempo_medio_dias', 'custo_por_veiculo',
-                 'total_os', 'valor_total_executado', 'valor_aprovado_executado'}
+_MENOR_MELHOR = {'ticket_medio', 'tempo_medio_pecas', 'tempo_medio_geral',
+                 'custo_por_veiculo', 'total_os', 'valor_total_executado',
+                 'valor_aprovado_executado'}
 
 
 def _calcular_thresholds(kpis):

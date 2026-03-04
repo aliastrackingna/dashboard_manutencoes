@@ -17,6 +17,8 @@ class Manutencao(models.Model):
     data_abertura = models.DateTimeField()
     data_previsao = models.DateTimeField(null=True, blank=True)
     data_encerramento = models.DateTimeField(null=True, blank=True)
+    inicio_execucao = models.DateTimeField(null=True, blank=True)
+    fim_execucao = models.DateTimeField(null=True, blank=True)
     descricao = models.TextField(blank=True, default='')
     status = models.CharField(max_length=50)
     flag_especial = models.BooleanField(default=False)
@@ -45,6 +47,7 @@ class Orcamento(models.Model):
     oficina = models.CharField(max_length=300)
     valor = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(max_length=30)
+    previsao_em_dias = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['codigo_orcamento']

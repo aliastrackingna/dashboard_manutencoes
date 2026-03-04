@@ -4,6 +4,7 @@ from .parsers.manutencoes import importar_manutencoes
 from .parsers.orcamentos import importar_orcamentos
 from .parsers.itens import importar_itens
 from .parsers.multas import importar_multas
+from .parsers.complemento_manutencao import importar_complemento_manutencao
 
 
 @dataclass
@@ -17,6 +18,7 @@ class RelatorioImportacao:
     itens_inseridos: int = 0
     multas_inseridas: int = 0
     multas_ignoradas: int = 0
+    complemento_atualizados: int = 0
     multas_ausentes: list = field(default_factory=list)
     erros: list = field(default_factory=list)
 
@@ -36,8 +38,8 @@ class RelatorioImportacao:
 
 
 def executar_pipeline(veiculos_file=None, manutencoes_file=None,
-                      orcamentos_file=None, itens_file=None,
-                      multas_file=None):
+                      complemento_file=None, orcamentos_file=None,
+                      itens_file=None, multas_file=None):
     relatorio = RelatorioImportacao()
 
     # 0. Veículos (se fornecido)
@@ -52,6 +54,12 @@ def executar_pipeline(veiculos_file=None, manutencoes_file=None,
         resultado = importar_manutencoes(manutencoes_file)
         relatorio.manutencoes_inseridas = resultado['inseridos']
         relatorio.manutencoes_atualizadas = resultado['atualizados']
+        relatorio.erros.extend(resultado['erros'])
+
+    # 1.5. Complemento Manutenção
+    if complemento_file:
+        resultado = importar_complemento_manutencao(complemento_file)
+        relatorio.complemento_atualizados = resultado['atualizados']
         relatorio.erros.extend(resultado['erros'])
 
     # 2. Orçamentos

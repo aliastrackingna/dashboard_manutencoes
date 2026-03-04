@@ -27,6 +27,11 @@ frotas_dashboard/
 
 ## Build / Run / Test Commands
 
+**IMPORTANTE:** Sempre ative o virtual environment antes de executar qualquer comando:
+```bash
+source venv/bin/activate
+```
+
 ```bash
 # Development server
 python manage.py runserver

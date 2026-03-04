@@ -11,16 +11,18 @@ def upload(request):
     if request.method == 'POST':
         veiculos_file = request.FILES.get('veiculos')
         manutencoes_file = request.FILES.get('manutencoes')
+        complemento_file = request.FILES.get('complemento')
         orcamentos_file = request.FILES.get('orcamentos')
         itens_file = request.FILES.get('itens')
         multas_file = request.FILES.get('multas')
 
-        if not any([veiculos_file, manutencoes_file, orcamentos_file, itens_file, multas_file]):
+        if not any([veiculos_file, manutencoes_file, complemento_file, orcamentos_file, itens_file, multas_file]):
             messages.warning(request, 'Selecione pelo menos um arquivo para importar.')
         else:
             relatorio = executar_pipeline(
                 veiculos_file=veiculos_file,
                 manutencoes_file=manutencoes_file,
+                complemento_file=complemento_file,
                 orcamentos_file=orcamentos_file,
                 itens_file=itens_file,
                 multas_file=multas_file,
