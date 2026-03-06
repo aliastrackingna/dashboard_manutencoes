@@ -2,9 +2,72 @@ import re
 from collections import OrderedDict
 
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Manutencao
+
+OPCOES_POR_PAGINA = [20, 30, 50, 100]
+
+STATUS_CHOICES = [
+    'Aberta',
+    'Autorizada Execução',
+    'Cancelada pelo Usuário',
+    'Em Execução',
+    'Executada',
+    'Orçamentação',
+]
+
+
+def lista(request):
+    qs = Manutencao.objects.select_related('veiculo').all()
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        if q.isdigit():
+            qs = qs.filter(numero_os__regex=r'- ' + q + r'$')
+        else:
+            qs = qs.filter(
+                Q(numero_os__icontains=q)
+                | Q(veiculo__placa__icontains=q)
+                | Q(modelo_veiculo__icontains=q)
+                | Q(descricao__icontains=q)
+            )
+
+    status = request.GET.get('status', '').strip()
+    if status:
+        qs = qs.filter(status=status)
+
+    placa = request.GET.get('placa', '').strip()
+    if placa:
+        qs = qs.filter(veiculo__placa=placa)
+
+    unidade = request.GET.get('unidade', '').strip()
+    if unidade:
+        qs = qs.filter(veiculo__unidade=unidade)
+
+    por_pagina = request.GET.get('por_pagina', '20')
+    try:
+        por_pagina_int = int(por_pagina)
+        if por_pagina_int not in OPCOES_POR_PAGINA:
+            por_pagina_int = 20
+    except ValueError:
+        por_pagina_int = 20
+
+    paginator = Paginator(qs, por_pagina_int)
+    page = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'manutencoes/lista.html', {
+        'page': page,
+        'q': q,
+        'status': status,
+        'placa': placa,
+        'unidade': unidade,
+        'por_pagina': str(por_pagina_int),
+        'opcoes_por_pagina': OPCOES_POR_PAGINA,
+        'status_choices': STATUS_CHOICES,
+    })
 
 
 def detalhe(request, numero_os):
