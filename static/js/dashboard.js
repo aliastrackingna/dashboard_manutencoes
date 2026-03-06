@@ -8,6 +8,7 @@ let corDestaque = isDark ? '#fca5a5' : '#991b1b';
 
 Chart.defaults.color = corTexto;
 Chart.defaults.borderColor = isDark ? 'rgba(156, 163, 175, 0.2)' : 'rgba(156, 163, 175, 0.3)';
+Chart.defaults.clip = false;
 
 window.atualizarCoresCharts = function() {
     isDark = document.documentElement.classList.contains('dark');
@@ -130,6 +131,7 @@ new Chart(document.getElementById('chart-evolucao'), {
     },
     options: {
         responsive: true,
+        layout: { padding: { top: 25 } },
         plugins: {
             legend: { display: evolucaoDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
             tooltip: {
@@ -194,6 +196,7 @@ new Chart(document.getElementById('chart-status'), {
     options: {
         indexAxis: 'y',
         responsive: true,
+        layout: { padding: { right: 50 } },
         plugins: {
             legend: { display: false },
             tooltip: { enabled: true },
@@ -258,6 +261,7 @@ new Chart(document.getElementById('chart-unidade'), {
     },
     options: {
         responsive: true,
+        layout: { padding: { top: 25 } },
         plugins: {
             legend: { display: unidadeDatasets.length > 1, position: 'top', labels: { boxWidth: 14, font: { size: 11 } } },
             tooltip: {
@@ -326,6 +330,7 @@ new Chart(document.getElementById('chart-veiculos'), {
     },
     options: {
         responsive: true,
+        layout: { padding: { top: 25 } },
         plugins: { legend: { display: false } },
         scales: {
             y: { display: false },
@@ -437,6 +442,7 @@ if (graficos.scatter_veiculos && graficos.scatter_veiculos.length > 0) {
             },
             options: {
                 responsive: true,
+                layout: { padding: { top: 30 } },
                 onHover: (e, els) => { e.native.target.style.cursor = els.length > 0 ? 'pointer' : 'default'; },
                 onClick: (e, els) => {
                     if (els.length > 0) {
@@ -483,6 +489,7 @@ new Chart(document.getElementById('chart-setor'), {
     },
     options: {
         responsive: true,
+        layout: { padding: { top: 35 } },
         plugins: { legend: { display: false } },
         scales: {
             y: { display: false },
@@ -518,6 +525,7 @@ new Chart(document.getElementById('chart-oficinas'), {
     },
     options: {
         responsive: true,
+        layout: { padding: { top: 25 } },
         plugins: {
             legend: { display: true, position: 'bottom', labels: { color: corTexto } },
             tooltip: {
