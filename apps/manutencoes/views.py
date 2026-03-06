@@ -47,6 +47,10 @@ def lista(request):
     if unidade:
         qs = qs.filter(veiculo__unidade=unidade)
 
+    oficina = request.GET.get('oficina', '').strip()
+    if oficina:
+        qs = qs.filter(orcamentos__oficina=oficina).distinct()
+
     por_pagina = request.GET.get('por_pagina', '20')
     try:
         por_pagina_int = int(por_pagina)
@@ -64,6 +68,7 @@ def lista(request):
         'status': status,
         'placa': placa,
         'unidade': unidade,
+        'oficina': oficina,
         'por_pagina': str(por_pagina_int),
         'opcoes_por_pagina': OPCOES_POR_PAGINA,
         'status_choices': STATUS_CHOICES,

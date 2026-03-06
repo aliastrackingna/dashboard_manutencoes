@@ -398,7 +398,7 @@ def dados_graficos(inicio, fim, unidade=None):
         ],
         'veiculos_insight': veiculos_insight,
         'top_oficinas': [
-            {'oficina': o['oficina'][:40], 'total': o['total'],
+            {'oficina': o['oficina'], 'total': o['total'],
              'valor_medio': round(float(o['valor_medio']), 2) if o['valor_medio'] else 0,
              'aprovados': o.get('aprovados', 0),
              'pendentes': o.get('pendentes', 0)}

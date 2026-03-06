@@ -536,13 +536,19 @@ new Chart(document.getElementById('chart-oficinas'), {
                 }
             },
         },
+        onClick: (e, els) => {
+            if (els.length > 0) {
+                const oficina = graficos.top_oficinas[els[0].index].oficina;
+                window.location.href = `/manutencoes/?oficina=${encodeURIComponent(oficina)}`;
+            }
+        },
         scales: {
             x: { ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 } },
-            y: { 
+            y: {
                 display: true,
                 beginAtZero: true,
                 suggestedMax: Math.ceil(Math.max(...graficos.top_oficinas.map(o => Math.max(o.aprovados, o.pendentes))) / 5) * 5 + 5,
-                ticks: { 
+                ticks: {
                     stepSize: 5,
                     color: corTexto,
                     font: { size: 10 }
