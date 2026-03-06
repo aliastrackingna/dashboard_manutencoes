@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load format_brl %}
+{% block title %}Relatórios — Manutenção Frota{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Relatórios Mensais</h1>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <form method="get" class="flex flex-wrap items-end gap-3">
+        <div>
+            <label for="mes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Período</label>
+            <select name="mes" id="mes"
+                    class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+                <option value="">Selecione um mês...</option>
+                {% for m in meses_disponiveis %}
+                <option value="{{ m.valor }}" {% if mes_selecionado == m.valor %}selected{% endif %}>{{ m.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit"
+                class="bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
+            Gerar
+        </button>
+    </form>
+</div>
+
+{% if mes_selecionado %}
+{% if ordens %}
+<p class="text-sm text-gray-400 mb-4">{{ ordens|length }} OS executada(s)</p>
+
+<div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs uppercase">
+            <tr>
+                <th class="px-4 py-3 text-left">OS</th>
+                <th class="px-4 py-3 text-left">Placa</th>
+                <th class="px-4 py-3 text-left">Modelo</th>
+                <th class="px-4 py-3 text-left">Unidade</th>
+                <th class="px-4 py-3 text-left">Abertura</th>
+                <th class="px-4 py-3 text-left">Início Exec.</th>
+                <th class="px-4 py-3 text-left">Fim Exec.</th>
+                <th class="px-4 py-3 text-left">Encerramento</th>
+                <th class="px-4 py-3 text-left">Integração</th>
+                <th class="px-4 py-3 text-right">Valor</th>
+                <th class="px-4 py-3 text-center">Atraso</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for item in ordens %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <td class="px-4 py-3 font-mono font-semibold">{{ item.os.numero_os }}</td>
+                <td class="px-4 py-3 font-mono">{{ item.os.veiculo.placa }}</td>
+                <td class="px-4 py-3">{{ item.os.modelo_veiculo }}</td>
+                <td class="px-4 py-3">{{ item.os.veiculo.unidade|default:"-" }}</td>
+                <td class="px-4 py-3">{{ item.os.data_abertura|date:"d/m/Y" }}</td>
+                <td class="px-4 py-3">{{ item.os.inicio_execucao|date:"d/m/Y"|default:"-" }}</td>
+                <td class="px-4 py-3">{{ item.os.fim_execucao|date:"d/m/Y"|default:"-" }}</td>
+                <td class="px-4 py-3">{{ item.os.data_encerramento|date:"d/m/Y"|default:"-" }}</td>
+                <td class="px-4 py-3">{{ item.os.data_integracao|date:"d/m/Y"|default:"-" }}</td>
+                <td class="px-4 py-3 text-right font-mono">R$ {{ item.os.valor_total|brl }}</td>
+                <td class="px-4 py-3 text-center">
+                    {% if item.em_atraso is None %}
+                    <span class="text-gray-400">-</span>
+                    {% elif item.em_atraso %}
+                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">Sim</span>
+                    {% else %}
+                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Não</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="bg-gray-50 dark:bg-gray-700 font-semibold">
+            <tr>
+                <td class="px-4 py-3" colspan="9">Total</td>
+                <td class="px-4 py-3 text-right font-mono">R$ {{ valor_total_soma|brl }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-400 text-sm">Nenhuma OS executada neste período.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

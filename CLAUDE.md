@@ -19,18 +19,26 @@ python manage.py check                        # System checks
 
 ## Architecture
 
-**Django project layout:** `config/` holds settings/urls/wsgi. Six apps live under `apps/`:
+**Django project layout:** `config/` holds settings/urls/wsgi. Eight apps live under `apps/`:
 
-- **dashboard** — KPI calculations (`kpis.py`: `calcular_kpis()`, `dados_graficos()`) and JSON API endpoints for Chart.js frontend
+- **dashboard** — KPI calculations (`kpis.py`: `calcular_kpis()`, `dados_graficos()` with 10-min cache) and JSON API endpoints for Chart.js frontend; period filter supports anual/30d/60d/90d/180d/360d/custom/todos
 - **veiculos** — Vehicle CRUD; `placa` (license plate) is the natural key used as `to_field` in FKs
 - **manutencoes** — Maintenance orders (OS), budgets (`Orcamento`), budget items (`ItemOrcamento`); cascade delete from OS→budgets→items
-- **importacao** — CSV import pipeline (`pipeline.py` orchestrates parsers in `parsers/`); uses `update_or_create` for idempotent upserts; items use delete+reinsert strategy
+- **importacao** — CSV import pipeline (`pipeline.py` orchestrates parsers in `parsers/`); uses `update_or_create` for idempotent upserts; items use delete+reinsert strategy; provides `ultima_importacao` context processor
 - **pesquisa** — SQLite FTS5 full-text search on budget items; `fts.py` manages the virtual table and triggers
 - **configuracoes** — KPI threshold settings stored in `KPIConfig` model
+- **multas** — Traffic fines tracking; `Multa` model with `auto_infracao` as unique key, FK to Veiculo via `to_field='placa'`; situação states: EM ABERTO, PAGA, CONTESTADA, BAIXADA
+- **relatorios** — Monthly maintenance reports; no own models, queries `Manutencao` from manutencoes app
 
 **Frontend:** Vanilla JS + Chart.js + Tailwind CSS, all via CDN. Dark mode toggle via localStorage. Period filter state persisted in localStorage. Chart clicks drill down to `/dashboard/lista/` with query params.
 
+**Templates:** `templates/base.html` with partials (`navbar.html`, `sidebar.html`, `theme_toggle.html`). Each app has its own `templates/<app_name>/` directory.
+
+**Middleware:** Custom `LoginRequiredMiddleware` — all views require authentication. WhiteNoise serves static files.
+
 **Data flow:** CSV upload → pandas parsing → Django ORM upsert → SQLite. The database is the single source of truth; CSVs are not read for display.
+
+**Deployment:** Docker Compose with Gunicorn + Nginx reverse proxy. See `Dockerfile`, `docker-compose.yml`, `entrypoint.sh`.
 
 ## Key Conventions
 

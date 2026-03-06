@@ -17,6 +17,7 @@ class Manutencao(models.Model):
     data_abertura = models.DateTimeField()
     data_previsao = models.DateTimeField(null=True, blank=True)
     data_encerramento = models.DateTimeField(null=True, blank=True)
+    data_integracao = models.DateTimeField(null=True, blank=True)
     inicio_execucao = models.DateTimeField(null=True, blank=True)
     fim_execucao = models.DateTimeField(null=True, blank=True)
     descricao = models.TextField(blank=True, default='')

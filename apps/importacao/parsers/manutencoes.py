@@ -74,6 +74,10 @@ def importar_manutencoes(file):
         if data_encerramento:
             data_encerramento = timezone.make_aware(data_encerramento)
 
+        data_integracao = parse_datetime_br(data_integracao_str)
+        if data_integracao:
+            data_integracao = timezone.make_aware(data_integracao)
+
         if status in ('Integrada Financeiro', 'XPTO'):
             status = 'Executada'
 
@@ -85,6 +89,7 @@ def importar_manutencoes(file):
             'modelo_veiculo': modelo_veiculo,
             'data_abertura': data_abertura,
             'data_encerramento': data_encerramento,
+            'data_integracao': data_integracao,
             'descricao': descricao,
             'status': status,
             'flag_especial': parse_bool_flag(flag_str),

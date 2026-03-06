@@ -15,4 +15,5 @@ urlpatterns = [
     path('pesquisa/', include('apps.pesquisa.urls')),
     path('configuracoes/', include('apps.configuracoes.urls')),
     path('multas/', include('apps.multas.urls')),
+    path('relatorios/', include('apps.relatorios.urls')),
 ]
