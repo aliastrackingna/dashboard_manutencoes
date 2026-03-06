@@ -26,9 +26,9 @@ class VeiculoModelTest(TestCase):
         veiculos = list(Veiculo.objects.values_list('placa', flat=True))
         self.assertEqual(veiculos[0], 'AAA0001')
 
-    def test_unidade_blank(self):
+    def test_unidade_default(self):
         v = Veiculo.objects.create(placa='XYZ9999', marca='NISSAN', modelo='Frontier')
-        self.assertEqual(v.unidade, '')
+        self.assertEqual(v.unidade, 'FUB')
 
 
 class VeiculoListaViewTest(TestCase):

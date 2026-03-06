@@ -36,8 +36,8 @@ source venv/bin/activate
 # Development server
 python manage.py runserver
 
-# Run all tests
-python manage.py test
+# Run all tests (paralelo, 1 banco por processo)
+python manage.py test --parallel $(nproc)
 
 # Run tests for specific app
 python manage.py test apps.veiculos
