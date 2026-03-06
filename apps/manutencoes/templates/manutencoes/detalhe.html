@@ -108,6 +108,11 @@
             <div class="flex items-center gap-3">
                 <span class="font-semibold">R$ {{ orc.valor|brl }}</span>
                 <span class="text-xs text-gray-400">{{ orc.data|date:"d/m/Y" }}</span>
+                {% if orc.previsao_em_dias %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                    {{ orc.previsao_em_dias }} dia{{ orc.previsao_em_dias|pluralize:"s" }}
+                </span>
+                {% endif %}
                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
         </button>
