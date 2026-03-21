@@ -1,10 +1,12 @@
 from decimal import Decimal, InvalidOperation
+from io import StringIO
 
+from django.core.management import call_command
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
 from apps.auditoria.models import LogAuditoria
-from .models import KPIConfig
+from .models import ConfigGeral, KPIConfig
 
 
 DEFAULT_KPIS = [
@@ -23,7 +25,13 @@ def kpis(request):
             defaults=kpi,
         )
 
+    email_backup_obj, _ = ConfigGeral.objects.get_or_create(
+        chave='email_backup',
+        defaults={'descricao': 'E-mail destinatário do backup Excel diário', 'valor': ''},
+    )
+
     if request.method == 'POST':
+        # KPIs
         alteracoes = []
         for kpi in KPIConfig.objects.all():
             novo_valor = request.POST.get(f'valor_{kpi.id}')
@@ -45,8 +53,45 @@ def kpis(request):
                 tipo='ALTERACAO',
                 descricao=desc,
             )
-        messages.success(request, 'Configurações de KPI atualizadas.')
+
+        # E-mail backup
+        novo_email = request.POST.get('email_backup', '').strip()
+        if novo_email != email_backup_obj.valor:
+            valor_anterior = email_backup_obj.valor
+            email_backup_obj.valor = novo_email
+            email_backup_obj.save()
+            LogAuditoria.objects.create(
+                usuario=request.user,
+                tipo='ALTERACAO',
+                descricao=f'E-mail de backup alterado de "{valor_anterior}" para "{novo_email}"',
+            )
+
+        messages.success(request, 'Configurações atualizadas.')
         return redirect('configuracoes:kpis')
 
     kpis_list = KPIConfig.objects.all().order_by('chave')
-    return render(request, 'configuracoes/kpis.html', {'kpis': kpis_list})
+    return render(request, 'configuracoes/kpis.html', {
+        'kpis': kpis_list,
+        'email_backup': email_backup_obj.valor,
+    })
+
+
+def enviar_backup(request):
+    if request.method == 'POST':
+        stdout = StringIO()
+        stderr = StringIO()
+        try:
+            call_command('backup_excel', stdout=stdout, stderr=stderr)
+            erro = stderr.getvalue()
+            if erro:
+                messages.error(request, erro.strip())
+            else:
+                messages.success(request, stdout.getvalue().strip())
+                LogAuditoria.objects.create(
+                    usuario=request.user,
+                    tipo='ALTERACAO',
+                    descricao='Backup Excel enviado manualmente',
+                )
+        except Exception as e:
+            messages.error(request, f'Erro ao enviar backup: {e}')
+    return redirect('configuracoes:kpis')

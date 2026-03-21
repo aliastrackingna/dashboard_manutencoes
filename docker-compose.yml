@@ -11,12 +11,50 @@ services:
       - DEBUG=${DEBUG:-False}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DB_PATH=/app/data/db_dashboard.sqlite3
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-}
     volumes:
       - staticfiles:/app/staticfiles
       - mediafiles:/app/media
       - dados:/app/data
     networks:
       - dashboard-network
+
+  dashboard_cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dashboard-dashboard
+    container_name: dashboard-cron
+    restart: unless-stopped
+    user: root
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-in-production}
+      - DEBUG=${DEBUG:-False}
+      - DB_PATH=/app/data/db_dashboard.sqlite3
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-}
+    volumes:
+      - dados:/app/data
+    networks:
+      - dashboard-network
+    depends_on:
+      - dashboard_web
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        apt-get update && apt-get install -y --no-install-recommends cron && rm -rf /var/lib/apt/lists/*
+        printenv | grep -E '^(SECRET_KEY|DEBUG|DB_PATH|EMAIL_|DEFAULT_FROM_EMAIL)' > /etc/environment
+        echo '0 3 * * * cd /app && /usr/local/bin/python manage.py backup_excel >> /proc/1/fd/1 2>&1' | crontab -
+        cron -f
 
   dashboard_nginx:
     build: ./nginx

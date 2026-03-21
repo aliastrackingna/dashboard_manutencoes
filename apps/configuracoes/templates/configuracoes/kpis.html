@@ -34,6 +34,15 @@
             </table>
         </div>
 
+        <h2 class="text-xl font-bold mt-8 mb-4">Backup Excel</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <label for="email_backup" class="block text-sm font-medium mb-1">E-mail destinatário do backup diário</label>
+            <input type="email" name="email_backup" id="email_backup" value="{{ email_backup }}"
+                   placeholder="exemplo@dominio.com"
+                   class="w-full rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-1.5 text-sm">
+            <p class="text-xs text-gray-400 mt-1">O backup Excel será enviado diariamente às 03h00 para este e-mail.</p>
+        </div>
+
         <div class="mt-4">
             <button type="submit"
                     class="bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-6 rounded-lg transition-colors">
@@ -41,5 +50,15 @@
             </button>
         </div>
     </form>
+
+    {% if email_backup %}
+    <form method="post" action="{% url 'configuracoes:enviar_backup' %}" class="mt-4">
+        {% csrf_token %}
+        <button type="submit"
+                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+            Enviar backup agora
+        </button>
+    </form>
+    {% endif %}
 </div>
 {% endblock %}
