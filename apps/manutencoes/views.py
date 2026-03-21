@@ -6,7 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Manutencao
+from .models import Manutencao, Orcamento
 
 OPCOES_POR_PAGINA = [20, 30, 50, 100]
 
@@ -150,4 +150,61 @@ def comparar_orcamentos(request, numero_os):
         'manutencao': manutencao,
         'orcamentos': orcamentos,
         'linhas': linhas,
+    })
+
+
+def oficinas(request):
+    q = request.GET.get('q', '').strip()
+
+    qs = (
+        Orcamento.objects
+        .values_list('oficina', flat=True)
+        .distinct()
+        .order_by('oficina')
+    )
+
+    if q:
+        qs = qs.filter(oficina__icontains=q)
+
+    oficinas_list = list(qs)
+
+    return render(request, 'manutencoes/oficinas.html', {
+        'oficinas': oficinas_list,
+        'q': q,
+        'total': len(oficinas_list),
+    })
+
+
+def oficina_detalhe(request, nome):
+    orcamentos_qs = (
+        Orcamento.objects
+        .filter(oficina=nome)
+        .select_related('manutencao', 'manutencao__veiculo')
+        .order_by('-data')
+    )
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        orcamentos_qs = orcamentos_qs.filter(
+            Q(manutencao__numero_os__icontains=q)
+            | Q(manutencao__veiculo__placa__icontains=q)
+        )
+
+    por_pagina = request.GET.get('por_pagina', '25')
+    try:
+        por_pagina_int = int(por_pagina)
+        if por_pagina_int not in [15, 25, 50, 100]:
+            por_pagina_int = 25
+    except ValueError:
+        por_pagina_int = 25
+
+    paginator = Paginator(orcamentos_qs, por_pagina_int)
+    page = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'manutencoes/oficina_detalhe.html', {
+        'nome_oficina': nome,
+        'page': page,
+        'q': q,
+        'por_pagina': str(por_pagina_int),
+        'opcoes_por_pagina': [15, 25, 50, 100],
     })
