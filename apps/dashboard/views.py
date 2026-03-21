@@ -6,8 +6,10 @@ from django.shortcuts import render
 from django.core.paginator import Paginator
 from django.utils.safestring import mark_safe
 
+from django.db.models import Prefetch
+
 from apps.configuracoes.models import KPIConfig
-from apps.manutencoes.models import Manutencao
+from apps.manutencoes.models import Manutencao, Orcamento
 from apps.veiculos.models import Veiculo
 from .kpis import get_periodo, calcular_kpis, dados_graficos
 
@@ -135,7 +137,25 @@ def lista_drilldown(request):
         except ValueError:
             pass
 
-    paginator = Paginator(qs, 25)
+    qs = qs.prefetch_related(
+        Prefetch(
+            'orcamentos',
+            queryset=Orcamento.objects.filter(
+                status__in=['Escolhido', 'Executado', 'Em Execução'],
+            ),
+            to_attr='orcamentos_vencedores',
+        ),
+    )
+
+    registros = list(qs)
+    for m in registros:
+        orc = m.orcamentos_vencedores[0] if m.orcamentos_vencedores else None
+        nome = orc.oficina.split('=>')[0].strip() if orc else ''
+        m.oficina_vencedora = nome.split('-')[0].strip()
+
+    registros.sort(key=lambda m: (m.oficina_vencedora or '\uffff', m.numero_os))
+
+    paginator = Paginator(registros, 25)
     page = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'dashboard/lista.html', {
