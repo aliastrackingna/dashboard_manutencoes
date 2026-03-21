@@ -5,7 +5,7 @@ from .models import Veiculo
 class VeiculoForm(forms.ModelForm):
     class Meta:
         model = Veiculo
-        fields = ['placa', 'marca', 'modelo', 'unidade', 'ativo']
+        fields = ['placa', 'marca', 'modelo', 'unidade', 'ativo', 'observacao']
         widgets = {
             'placa': forms.TextInput(attrs={
                 'class': 'w-full rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2',
@@ -22,5 +22,10 @@ class VeiculoForm(forms.ModelForm):
             }),
             'ativo': forms.CheckboxInput(attrs={
                 'class': 'rounded border border-gray-300 text-primary focus:ring-primary',
+            }),
+            'observacao': forms.Textarea(attrs={
+                'class': 'w-full rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2',
+                'rows': 3,
+                'placeholder': 'Observações sobre o veículo...',
             }),
         }

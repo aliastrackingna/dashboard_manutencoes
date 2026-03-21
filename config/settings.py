@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.configuracoes',
     'apps.multas',
     'apps.relatorios',
+    'apps.auditoria',
 ]
 
 MIDDLEWARE = [

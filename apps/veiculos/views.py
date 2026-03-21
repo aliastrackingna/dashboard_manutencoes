@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.contrib import messages
 from django.core.paginator import Paginator
+
+from apps.auditoria.models import LogAuditoria
 from .models import Veiculo
 from .forms import VeiculoForm
 
@@ -33,7 +35,12 @@ def criar(request):
     if request.method == 'POST':
         form = VeiculoForm(request.POST)
         if form.is_valid():
-            form.save()
+            veiculo = form.save()
+            LogAuditoria.objects.create(
+                usuario=request.user,
+                tipo='ADICAO',
+                descricao=f'Veículo {veiculo.placa} criado ({veiculo.marca} {veiculo.modelo})',
+            )
             messages.success(request, 'Veículo criado com sucesso.')
             return redirect('veiculos:lista')
     else:
@@ -44,9 +51,26 @@ def criar(request):
 def editar(request, placa):
     veiculo = get_object_or_404(Veiculo, placa=placa)
     if request.method == 'POST':
+        ativo_anterior = veiculo.ativo
         form = VeiculoForm(request.POST, instance=veiculo)
         if form.is_valid():
             form.save()
+            alteracoes = []
+            if form.cleaned_data['ativo'] != ativo_anterior:
+                estado = 'ativado' if form.cleaned_data['ativo'] else 'desativado'
+                alteracoes.append(f'Veículo {veiculo.placa} {estado}')
+            changed = form.changed_data
+            campos_rastreados = [f for f in changed if f != 'ativo']
+            if campos_rastreados:
+                alteracoes.append(
+                    f'Veículo {veiculo.placa} editado ({", ".join(campos_rastreados)})'
+                )
+            for desc in alteracoes:
+                LogAuditoria.objects.create(
+                    usuario=request.user,
+                    tipo='ALTERACAO',
+                    descricao=desc,
+                )
             messages.success(request, 'Veículo atualizado com sucesso.')
             return redirect('veiculos:detalhe', placa=veiculo.placa)
     else:

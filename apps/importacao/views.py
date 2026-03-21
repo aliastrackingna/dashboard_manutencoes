@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.contrib import messages
 
+from apps.auditoria.models import LogAuditoria
 from .models import RegistroImportacao
 from .pipeline import executar_pipeline
 
@@ -31,6 +32,13 @@ def upload(request):
                 pk=1,
                 defaults={},
             )
+
+            if relatorio.multas_inseridas > 0:
+                LogAuditoria.objects.create(
+                    usuario=request.user,
+                    tipo='IMPORTACAO',
+                    descricao=f'{relatorio.multas_inseridas} multa(s) importada(s) via CSV',
+                )
 
             if relatorio.tem_erros:
                 messages.warning(

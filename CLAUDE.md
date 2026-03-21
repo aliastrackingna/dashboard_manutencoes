@@ -8,9 +8,11 @@ Manutenção Frota Dashboard — a Django 6.0 fleet maintenance dashboard for tr
 
 ## Commands
 
+Activate the virtualenv first: `source venv/bin/activate`
+
 ```bash
 python manage.py runserver                    # Dev server on :8000
-python manage.py test                         # All tests
+python manage.py test --parallel $(nproc)     # All tests (parallel)
 python manage.py test apps.importacao         # Tests for one app
 python manage.py test apps.importacao.tests.ImportarVeiculosTest.test_criar_veiculo  # Single test
 python manage.py makemigrations && python manage.py migrate  # Schema changes
@@ -54,7 +56,8 @@ python manage.py check                        # System checks
 
 ## Environment Variables
 
-- `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`
+- `SECRET_KEY`, `DEBUG` (default `True`), `ALLOWED_HOSTS` (comma-separated, default `localhost,127.0.0.1`)
+- `DB_PATH` defaults to `BASE_DIR / 'db.sqlite3'`
 - `CSV_FILES_DIR` defaults to `BASE_DIR / 'csv_files'`
 
 ## Testing

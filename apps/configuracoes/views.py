@@ -1,5 +1,9 @@
+from decimal import Decimal, InvalidOperation
+
 from django.shortcuts import render, redirect
 from django.contrib import messages
+
+from apps.auditoria.models import LogAuditoria
 from .models import KPIConfig
 
 
@@ -20,15 +24,27 @@ def kpis(request):
         )
 
     if request.method == 'POST':
+        alteracoes = []
         for kpi in KPIConfig.objects.all():
             novo_valor = request.POST.get(f'valor_{kpi.id}')
             if novo_valor is not None:
                 try:
-                    from decimal import Decimal, InvalidOperation
+                    valor_anterior = kpi.valor
                     kpi.valor = Decimal(novo_valor.replace(',', '.'))
+                    if kpi.valor != valor_anterior:
+                        alteracoes.append(
+                            f'{kpi.descricao} alterado de {valor_anterior} {kpi.unidade}'
+                            f' para {kpi.valor} {kpi.unidade}'
+                        )
                     kpi.save()
                 except (InvalidOperation, ValueError):
                     messages.error(request, f'Valor inválido para "{kpi.descricao}".')
+        for desc in alteracoes:
+            LogAuditoria.objects.create(
+                usuario=request.user,
+                tipo='ALTERACAO',
+                descricao=desc,
+            )
         messages.success(request, 'Configurações de KPI atualizadas.')
         return redirect('configuracoes:kpis')
 

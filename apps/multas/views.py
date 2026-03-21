@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 
+from apps.auditoria.models import LogAuditoria
 from .models import Multa
 from .forms import MultaEditForm, MultaForm
 
@@ -53,7 +54,12 @@ def criar(request):
     if request.method == 'POST':
         form = MultaForm(request.POST)
         if form.is_valid():
-            form.save()
+            multa = form.save()
+            LogAuditoria.objects.create(
+                usuario=request.user,
+                tipo='ADICAO',
+                descricao=f'Multa {multa.auto_infracao} adicionada para o veículo {multa.veiculo_id}',
+            )
             messages.success(request, 'Multa cadastrada com sucesso.')
             return redirect('multas:lista')
     else:
@@ -65,9 +71,33 @@ def editar(request, auto_infracao):
     multa = get_object_or_404(Multa, auto_infracao=auto_infracao)
 
     if request.method == 'POST':
+        situacao_anterior = multa.situacao
+        protocolo_anterior = multa.protocolo_sei
+        observacao_anterior = multa.observacao
         form = MultaEditForm(request.POST, instance=multa)
         if form.is_valid():
             form.save()
+            alteracoes = []
+            if form.cleaned_data['situacao'] != situacao_anterior:
+                alteracoes.append(
+                    f'Multa {multa.auto_infracao} do veículo {multa.veiculo_id}'
+                    f' alterada para {form.cleaned_data["situacao"]}'
+                )
+            if form.cleaned_data.get('protocolo_sei', '') != protocolo_anterior:
+                alteracoes.append(
+                    f'Protocolo SEI da multa {multa.auto_infracao} do veículo {multa.veiculo_id}'
+                    f' alterado para "{form.cleaned_data["protocolo_sei"]}"'
+                )
+            if form.cleaned_data.get('observacao', '') != observacao_anterior:
+                alteracoes.append(
+                    f'Observação da multa {multa.auto_infracao} do veículo {multa.veiculo_id} alterada'
+                )
+            for desc in alteracoes:
+                LogAuditoria.objects.create(
+                    usuario=request.user,
+                    tipo='ALTERACAO',
+                    descricao=desc,
+                )
             messages.success(request, 'Multa atualizada com sucesso.')
             return redirect('multas:lista')
     else:

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Auditoria — Manutenção Frota{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Auditoria</h1>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <form method="get" class="flex flex-wrap gap-3">
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por descrição..."
+               class="flex-1 min-w-[200px] rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="por_pagina" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            {% for op in opcoes_por_pagina %}
+            <option value="{{ op }}" {% if por_pagina == op|stringformat:"d" %}selected{% endif %}>{{ op }} por página</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            Filtrar
+        </button>
+    </form>
+</div>
+
+<p class="text-sm text-gray-400 mb-4">{{ page.paginator.count }} registro(s)</p>
+
+<div class="space-y-3">
+    {% for log in page %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <p class="text-sm">{{ log.descricao }}</p>
+            </div>
+            <div class="flex items-center gap-3 ml-4 shrink-0">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                    {% if log.tipo == 'ADICAO' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                    {% elif log.tipo == 'ALTERACAO' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                    {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% endif %}">
+                    {{ log.get_tipo_display }}
+                </span>
+            </div>
+        </div>
+        <div class="mt-2 flex items-center gap-4 text-xs text-gray-400">
+            <span>{{ log.criado_em|date:"d/m/Y" }} às {{ log.criado_em|time:"H:i" }}</span>
+            <span>{{ log.usuario.get_full_name|default:log.usuario.username }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-gray-400 text-sm text-center py-8">Nenhum registro de auditoria encontrado.</p>
+    {% endfor %}
+</div>
+
+{% if page.has_other_pages %}
+<div class="mt-6 flex justify-center gap-2">
+    {% if page.has_previous %}
+    <a href="?page={{ page.previous_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}"
+       class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">&laquo; Anterior</a>
+    {% endif %}
+    <span class="px-3 py-1 text-sm text-gray-500">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+    <a href="?page={{ page.next_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}"
+       class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">Próxima &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
