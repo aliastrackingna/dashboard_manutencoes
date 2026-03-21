@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Manutencao, Orcamento
@@ -158,8 +158,16 @@ def oficinas(request):
 
     qs = (
         Orcamento.objects
-        .values_list('oficina', flat=True)
-        .distinct()
+        .values('oficina')
+        .annotate(
+            total_orcamentos=Count('id'),
+            lancado=Count('id', filter=Q(status='Lançado')),
+            escolhido=Count('id', filter=Q(status='Escolhido')),
+            em_execucao=Count('id', filter=Q(status='Em Execução')),
+            executado=Count('id', filter=Q(status='Executado')),
+            recusado=Count('id', filter=Q(status='Recusado')),
+            cancelado=Count('id', filter=Q(status='Cancelado')),
+        )
         .order_by('oficina')
     )
 
