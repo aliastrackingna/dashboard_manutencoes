@@ -78,9 +78,11 @@ def lista(request):
 def detalhe(request, numero_os):
     manutencao = get_object_or_404(Manutencao, numero_os=numero_os)
     orcamentos = manutencao.orcamentos.prefetch_related('itens').all()
+    acompanhando = manutencao.acompanhamentos.filter(usuario=request.user).exists()
     return render(request, 'manutencoes/detalhe.html', {
         'manutencao': manutencao,
         'orcamentos': orcamentos,
+        'acompanhando': acompanhando,
     })
 
 

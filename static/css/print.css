@@ -21,7 +21,7 @@
     .flex.h-\[calc\(100vh-4rem\)\] { display: block !important; }
     main { overflow: visible !important; height: auto !important; padding: 0 !important; }
 
-    nav, aside, footer, #periodo-select, .dashboard-title-bar { display: none !important; }
+    nav, aside, footer, #periodo-select, .dashboard-title-bar, .no-print { display: none !important; }
 
     #print-header { display: block !important; }
 
