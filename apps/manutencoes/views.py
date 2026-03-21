@@ -96,9 +96,12 @@ def comparar_orcamentos(request, numero_os):
         orc.oficina_curta = re.split(r'[-=]', orc.oficina)[0].strip() if orc.oficina else ''
 
     # Coletar todos os itens únicos (chave = codigo_item ou descricao)
+    # Itens com valor zerado são ignorados na comparação
     todas_chaves = OrderedDict()
     for orc in orcamentos:
         for item in orc.itens.all():
+            if item.total == 0:
+                continue
             chave = item.codigo_item if item.codigo_item else item.descricao
             if chave not in todas_chaves:
                 todas_chaves[chave] = item.descricao
@@ -110,6 +113,8 @@ def comparar_orcamentos(request, numero_os):
         for orc in orcamentos:
             item_encontrado = None
             for item in orc.itens.all():
+                if item.total == 0:
+                    continue
                 item_chave = item.codigo_item if item.codigo_item else item.descricao
                 if item_chave == chave:
                     item_encontrado = item
