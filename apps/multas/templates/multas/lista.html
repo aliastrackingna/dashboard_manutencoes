@@ -13,8 +13,14 @@
 
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <form method="get" class="flex flex-wrap gap-3">
-        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por placa, modelo ou infração..."
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por auto infração, placa, modelo ou descrição..."
                class="flex-1 min-w-[200px] rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+        <select name="situacao" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+            <option value="">Todas situações</option>
+            {% for valor, label in situacao_choices %}
+            <option value="{{ valor }}" {% if situacao == valor %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
         <select name="por_pagina" class="rounded-lg border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
             {% for op in opcoes_por_pagina %}
             <option value="{{ op }}" {% if por_pagina == op|stringformat:"d" %}selected{% endif %}>{{ op }} por página</option>
@@ -124,12 +130,12 @@
 {% if page.has_other_pages %}
 <div class="mt-6 flex justify-center gap-2">
     {% if page.has_previous %}
-    <a href="?page={{ page.previous_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}{% if placa %}&placa={{ placa|urlencode }}{% endif %}{% if unidade %}&unidade={{ unidade|urlencode }}{% endif %}"
+    <a href="?page={{ page.previous_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}{% if situacao %}&situacao={{ situacao|urlencode }}{% endif %}{% if placa %}&placa={{ placa|urlencode }}{% endif %}{% if unidade %}&unidade={{ unidade|urlencode }}{% endif %}"
        class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">&laquo; Anterior</a>
     {% endif %}
     <span class="px-3 py-1 text-sm text-gray-500">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
     {% if page.has_next %}
-    <a href="?page={{ page.next_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}{% if placa %}&placa={{ placa|urlencode }}{% endif %}{% if unidade %}&unidade={{ unidade|urlencode }}{% endif %}"
+    <a href="?page={{ page.next_page_number }}&q={{ q }}&por_pagina={{ por_pagina }}{% if situacao %}&situacao={{ situacao|urlencode }}{% endif %}{% if placa %}&placa={{ placa|urlencode }}{% endif %}{% if unidade %}&unidade={{ unidade|urlencode }}{% endif %}"
        class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm hover:bg-gray-200">Próxima &raquo;</a>
     {% endif %}
 </div>

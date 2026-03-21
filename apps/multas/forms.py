@@ -16,7 +16,7 @@ class MultaForm(forms.ModelForm):
         ]
         widgets = {
             'auto_infracao': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Nº do auto de infração'}),
-            'veiculo': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Placa do veículo (ex: ABC1D23)'}),
+            'veiculo': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Placa do veículo (ex: ABC1D23)', 'id': 'id_veiculo', 'autocomplete': 'off'}),
             'orgao_autuador': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Órgão autuador'}),
             'data_infracao': forms.DateInput(attrs={'class': _INPUT, 'type': 'date'}, format='%Y-%m-%d'),
             'hora_infracao': forms.TimeInput(attrs={'class': _INPUT, 'type': 'time'}, format='%H:%M'),

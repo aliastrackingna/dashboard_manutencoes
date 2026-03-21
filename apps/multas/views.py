@@ -21,10 +21,15 @@ def lista(request):
     if unidade:
         qs = qs.filter(veiculo__unidade=unidade)
 
+    situacao = request.GET.get('situacao', '').strip()
+    if situacao:
+        qs = qs.filter(situacao=situacao)
+
     q = request.GET.get('q', '').strip()
     if q:
         qs = qs.filter(
-            Q(veiculo__placa__icontains=q)
+            Q(auto_infracao__icontains=q)
+            | Q(veiculo__placa__icontains=q)
             | Q(veiculo__modelo__icontains=q)
             | Q(descricao_infracao__icontains=q)
         )
@@ -45,6 +50,8 @@ def lista(request):
         'q': q,
         'placa': placa,
         'unidade': unidade,
+        'situacao': situacao,
+        'situacao_choices': Multa.SITUACAO_CHOICES,
         'por_pagina': str(por_pagina_int),
         'opcoes_por_pagina': OPCOES_POR_PAGINA,
     })
