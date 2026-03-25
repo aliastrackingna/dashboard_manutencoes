@@ -17,7 +17,7 @@ def importar_itens(file):
             continue
 
         try:
-            codigo_orcamento = int(codigo_str)
+            codigo_orcamento = int(codigo_str.replace('.', ''))
         except ValueError:
             erros.append({
                 'linha': idx + 2,

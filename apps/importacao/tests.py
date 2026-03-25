@@ -215,6 +215,179 @@ class ImportarItensTest(TestCase):
         self.assertEqual(len(resultado['erros']), 1)
 
 
+class ImportarManutencoesNumeroPontuadoTest(TestCase):
+    """Testa importação de OS com numero_os no formato pontuado (ex: '2026 - 1.010')."""
+
+    def setUp(self):
+        Veiculo.objects.create(placa='PLACA77', marca='VW', modelo='Kombi')
+
+    def _make_csv(self, rows):
+        lines = []
+        for row in rows:
+            lines.append(';'.join(f'"{c}"' for c in row))
+        return io.StringIO('\n'.join(lines))
+
+    def test_importar_os_numero_pontuado(self):
+        csv = self._make_csv([
+            ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '04/02/2026 13:01', '', '', '', 'Troca de óleo', 'Orçamentação', '', '0,00', '0,00', '0,00'],
+        ])
+        resultado = importar_manutencoes(csv)
+        self.assertEqual(resultado['inseridos'], 1)
+        self.assertEqual(resultado['erros'], [])
+        m = Manutencao.objects.get(numero_os='2026 - 1.010')
+        self.assertEqual(m.status, 'Orçamentação')
+
+    def test_importar_os_numero_pontuado_milhares(self):
+        csv = self._make_csv([
+            ['', '', '', '3', '2026 - 10.250', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '10/03/2026 09:00', '', '', '', 'Revisão', 'Lançada', '', '0,00', '0,00', '0,00'],
+        ])
+        resultado = importar_manutencoes(csv)
+        self.assertEqual(resultado['inseridos'], 1)
+        m = Manutencao.objects.get(numero_os='2026 - 10.250')
+        self.assertEqual(m.status, 'Lançada')
+
+    def test_update_os_numero_pontuado(self):
+        csv1 = self._make_csv([
+            ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
+        ])
+        csv2 = self._make_csv([
+            ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Executada', '', '500,00', '200,00', '700,00'],
+        ])
+        importar_manutencoes(csv1)
+        resultado = importar_manutencoes(csv2)
+        self.assertEqual(resultado['atualizados'], 1)
+        m = Manutencao.objects.get(numero_os='2026 - 1.010')
+        self.assertEqual(m.status, 'Executada')
+        self.assertEqual(m.valor_total, Decimal('700.00'))
+
+    def test_importar_multiplas_os_pontuadas(self):
+        csv = self._make_csv([
+            ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc 1', 'Lançada', '', '0,00', '0,00', '0,00'],
+            ['', '', '', '3', '2026 - 1.011', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '05/02/2026 14:00', '', '', '', 'Desc 2', 'Orçamentação', '', '100,00', '50,00', '150,00'],
+            ['', '', '', '3', '2026 - 2.500', 'UNB', 'SG', 'PLACA77', '',
+             'Kombi', '06/02/2026 08:30', '', '', '', 'Desc 3', 'Executada', '', '0,00', '0,00', '0,00'],
+        ])
+        resultado = importar_manutencoes(csv)
+        self.assertEqual(resultado['inseridos'], 3)
+        self.assertTrue(Manutencao.objects.filter(numero_os='2026 - 1.010').exists())
+        self.assertTrue(Manutencao.objects.filter(numero_os='2026 - 1.011').exists())
+        self.assertTrue(Manutencao.objects.filter(numero_os='2026 - 2.500').exists())
+
+
+class ImportarOrcamentosNumeroPontuadoTest(TestCase):
+    """Testa importação de orçamentos com codigo_orcamento no formato pontuado (ex: '1.010')."""
+
+    def setUp(self):
+        v = Veiculo.objects.create(placa='PLACA77', marca='VW', modelo='Kombi')
+        from django.utils import timezone
+        from datetime import datetime
+        Manutencao.objects.create(
+            numero_os='2026 - 1.010',
+            veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 4, 13, 1)),
+            status='Orçamentação',
+        )
+        Manutencao.objects.create(
+            numero_os='2026 - 85',
+            veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 12, 10, 16)),
+            status='Em Execução',
+        )
+
+    def test_importar_orcamento_codigo_pontuado(self):
+        csv = 'numero_os,codigo_orcamento,data,oficina,valor,status\n'
+        csv += '2026 - 1.010,1.010,13/02/2026,AUTO PECAS LTDA,"3.500,00",Lançado\n'
+        resultado = importar_orcamentos(io.StringIO(csv))
+        self.assertEqual(resultado['inseridos'], 1)
+        self.assertEqual(resultado['erros'], [])
+        orc = Orcamento.objects.get(codigo_orcamento=1010)
+        self.assertEqual(orc.valor, Decimal('3500.00'))
+        self.assertEqual(orc.manutencao.numero_os, '2026 - 1.010')
+
+    def test_importar_orcamento_codigo_pontuado_milhares(self):
+        csv = 'numero_os,codigo_orcamento,data,oficina,valor,status\n'
+        csv += '2026 - 85,10.250,15/03/2026,OFICINA CENTRO,"1.200,00",Escolhido\n'
+        resultado = importar_orcamentos(io.StringIO(csv))
+        self.assertEqual(resultado['inseridos'], 1)
+        self.assertEqual(resultado['erros'], [])
+        orc = Orcamento.objects.get(codigo_orcamento=10250)
+        self.assertEqual(orc.status, 'Escolhido')
+
+    def test_update_orcamento_codigo_pontuado(self):
+        csv1 = 'numero_os,codigo_orcamento,data,oficina,valor,status\n'
+        csv1 += '2026 - 1.010,1.010,13/02/2026,AUTO PECAS,"3.500,00",Lançado\n'
+        csv2 = 'numero_os,codigo_orcamento,data,oficina,valor,status\n'
+        csv2 += '2026 - 1.010,1.010,13/02/2026,AUTO PECAS,"3.500,00",Executado\n'
+        importar_orcamentos(io.StringIO(csv1))
+        resultado = importar_orcamentos(io.StringIO(csv2))
+        self.assertEqual(resultado['atualizados'], 1)
+        orc = Orcamento.objects.get(codigo_orcamento=1010)
+        self.assertEqual(orc.status, 'Executado')
+
+    def test_importar_multiplos_orcamentos_pontuados(self):
+        csv = 'numero_os,codigo_orcamento,data,oficina,valor,status\n'
+        csv += '2026 - 1.010,1.010,13/02/2026,OFICINA A,"1.000,00",Lançado\n'
+        csv += '2026 - 1.010,1.011,14/02/2026,OFICINA B,"2.000,00",Recusado\n'
+        csv += '2026 - 85,2.500,15/02/2026,OFICINA C,"3.000,00",Escolhido\n'
+        resultado = importar_orcamentos(io.StringIO(csv))
+        self.assertEqual(resultado['inseridos'], 3)
+        self.assertEqual(resultado['erros'], [])
+        self.assertTrue(Orcamento.objects.filter(codigo_orcamento=1010).exists())
+        self.assertTrue(Orcamento.objects.filter(codigo_orcamento=1011).exists())
+        self.assertTrue(Orcamento.objects.filter(codigo_orcamento=2500).exists())
+
+
+class ImportarItensOrcamentoPontuadoTest(TestCase):
+    """Testa importação de itens com codigo_orcamento no formato pontuado."""
+
+    def setUp(self):
+        v = Veiculo.objects.create(placa='PLACA77', marca='VW', modelo='Kombi')
+        from django.utils import timezone
+        from datetime import datetime
+        m = Manutencao.objects.create(
+            numero_os='2026 - 1.010',
+            veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 4, 13, 1)),
+            status='Orçamentação',
+        )
+        Orcamento.objects.create(
+            manutencao=m,
+            codigo_orcamento=1010,
+            data=datetime(2026, 2, 13).date(),
+            oficina='AUTO PECAS LTDA',
+            valor=Decimal('3500.00'),
+            status='Lançado',
+        )
+
+    def test_importar_item_codigo_orcamento_pontuado(self):
+        csv = 'codigo_orcamento,tipo,grupo,codigo_item,descricao,marca,valor_unit,qtd,total,garantia\n'
+        csv += '1.010,PCA,Original,10W30,OLEO MOTOR,TOTAL,"31,15",4,"124,60",14/05/2026\n'
+        resultado = importar_itens(io.StringIO(csv))
+        self.assertEqual(resultado['inseridos'], 1)
+        self.assertEqual(resultado['erros'], [])
+        item = ItemOrcamento.objects.first()
+        self.assertEqual(item.descricao, 'OLEO MOTOR')
+        self.assertEqual(item.orcamento.codigo_orcamento, 1010)
+
+    def test_delete_reinsert_codigo_pontuado(self):
+        csv1 = 'codigo_orcamento,tipo,grupo,codigo_item,descricao,marca,valor_unit,qtd,total,garantia\n'
+        csv1 += '1.010,PCA,Original,10W30,OLEO MOTOR,TOTAL,"31,15",4,"124,60",\n'
+        importar_itens(io.StringIO(csv1))
+        self.assertEqual(ItemOrcamento.objects.count(), 1)
+
+        csv2 = 'codigo_orcamento,tipo,grupo,codigo_item,descricao,marca,valor_unit,qtd,total,garantia\n'
+        csv2 += '1.010,PCA,Original,10W30,OLEO MOTOR,TOTAL,"35,00",4,"140,00",\n'
+        csv2 += '1.010,SRV,Serviço,SERV,ALINHAMENTO,-,"178,00",1,"178,00",\n'
+        importar_itens(io.StringIO(csv2))
+        self.assertEqual(ItemOrcamento.objects.count(), 2)
+
+
 class PipelineIntegracaoTest(TestCase):
     def test_pipeline_completo(self):
         veiculos_csv = io.StringIO("Placa,Marca,Modelo,unidade\nPLACA13,HONDA,FIT,\n")
