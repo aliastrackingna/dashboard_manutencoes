@@ -30,12 +30,13 @@ def importar_manutencoes(file):
         data_encerramento_str = str(row.iloc[11]).strip() if len(row) > 11 else ''
         data_integracao_str = str(row.iloc[12]).strip() if len(row) > 12 else ''
         data_cancelamento_str = str(row.iloc[13]).strip() if len(row) > 13 else ''
-        descricao = str(row.iloc[14]).strip() if len(row) > 14 else ''
-        status = str(row.iloc[15]).strip() if len(row) > 15 else ''
-        flag_str = str(row.iloc[16]).strip() if len(row) > 16 else ''
-        valor_pecas_str = str(row.iloc[17]).strip() if len(row) > 17 else ''
-        valor_servicos_str = str(row.iloc[18]).strip() if len(row) > 18 else ''
-        valor_total_str = str(row.iloc[19]).strip() if len(row) > 19 else ''
+        # adicionaram mais um campo no csv, pq sim
+        descricao = str(row.iloc[15]).strip() if len(row) > 15 else ''
+        status = str(row.iloc[16]).strip() if len(row) > 16 else ''
+        flag_str = str(row.iloc[17]).strip() if len(row) > 17 else ''
+        valor_pecas_str = str(row.iloc[18]).strip() if len(row) > 18 else ''
+        valor_servicos_str = str(row.iloc[19]).strip() if len(row) > 19 else ''
+        valor_total_str = str(row.iloc[20]).strip() if len(row) > 20 else ''
 
         if not numero_os:
             erros.append({
