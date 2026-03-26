@@ -283,3 +283,124 @@ class CompararOrcamentosViewTest(TestCase):
         oficinas_curtas = [o.oficina_curta for o in response.context['orcamentos']]
         self.assertIn('AUTO PECAS', oficinas_curtas)
         self.assertIn('MECANICA SILVA', oficinas_curtas)
+
+
+class AnalisePrecosViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='testpass')
+
+        v = Veiculo.objects.create(placa='ANL0001', marca='FIAT', modelo='UNO')
+        self.m = Manutencao.objects.create(
+            numero_os='2026 - 200', veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 3, 1, 9, 0)),
+            status='Orçamentação',
+        )
+        self.orc = Orcamento.objects.create(
+            manutencao=self.m, codigo_orcamento=2001,
+            data=datetime(2026, 3, 2).date(),
+            oficina='OFICINA TESTE', valor=Decimal('500.00'), status='Escolhido',
+        )
+        self.item = ItemOrcamento.objects.create(
+            orcamento=self.orc, tipo='PCA', descricao='FILTRO DE OLEO',
+            marca='TECFIL', valor_unit=Decimal('50.00'),
+            qtd=Decimal('1'), total=Decimal('50.00'),
+        )
+
+        # Criar histórico: outra OS com orçamento aprovado e mesmo item
+        v2 = Veiculo.objects.create(placa='ANL0002', marca='VW', modelo='GOL')
+        self.m_hist = Manutencao.objects.create(
+            numero_os='2026 - 201', veiculo=v2,
+            data_abertura=timezone.make_aware(datetime(2026, 1, 10, 8, 0)),
+            status='Executada',
+        )
+        orc_hist = Orcamento.objects.create(
+            manutencao=self.m_hist, codigo_orcamento=2002,
+            data=datetime(2026, 1, 11).date(),
+            oficina='OFICINA HIST', valor=Decimal('300.00'), status='Executado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc_hist, tipo='PCA', descricao='FILTRO DE OLEO',
+            marca='MANN', valor_unit=Decimal('40.00'),
+            qtd=Decimal('1'), total=Decimal('40.00'),
+        )
+
+    def test_analise_precos_sem_orcamentos(self):
+        v = Veiculo.objects.create(placa='ANL0003', marca='CHEVROLET', modelo='ONIX')
+        m = Manutencao.objects.create(
+            numero_os='2026 - 202', veiculo=v,
+            data_abertura=timezone.make_aware(datetime(2026, 3, 5, 10, 0)),
+            status='Aberta',
+        )
+        response = self.client.get(reverse('manutencoes:analise_precos', args=['2026 - 202']))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_itens'], 0)
+
+    def test_analise_precos_com_historico(self):
+        response = self.client.get(reverse('manutencoes:analise_precos', args=['2026 - 200']))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_itens'], 1)
+        analise = response.context['analise']
+        item_analise = analise[0]
+        self.assertEqual(item_analise['ocorrencias'], 1)
+        # Preço atual 50, média 40 → variação +25%
+        self.assertAlmostEqual(float(item_analise['variacao']), 25.0, places=1)
+        self.assertEqual(item_analise['classificacao'], 'acima')
+
+    def test_analise_precos_sem_historico(self):
+        # Item novo sem ocorrências anteriores
+        ItemOrcamento.objects.create(
+            orcamento=self.orc, tipo='SRV', descricao='SERVICO EXCLUSIVO',
+            valor_unit=Decimal('200.00'), qtd=Decimal('1'), total=Decimal('200.00'),
+        )
+        response = self.client.get(reverse('manutencoes:analise_precos', args=['2026 - 200']))
+        analise = response.context['analise']
+        item_novo = next(a for a in analise if a['descricao'] == 'SERVICO EXCLUSIVO')
+        self.assertEqual(item_novo['classificacao'], 'sem_historico')
+        self.assertIsNone(item_novo['variacao'])
+
+    def test_analise_precos_exclui_propria_os(self):
+        # Adicionar outro orçamento aprovado na mesma OS com mesmo item
+        orc2 = Orcamento.objects.create(
+            manutencao=self.m, codigo_orcamento=2003,
+            data=datetime(2026, 3, 3).date(),
+            oficina='OFICINA OUTRA', valor=Decimal('600.00'), status='Executado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc2, tipo='PCA', descricao='FILTRO DE OLEO',
+            marca='WEGA', valor_unit=Decimal('999.00'),
+            qtd=Decimal('1'), total=Decimal('999.00'),
+        )
+        response = self.client.get(reverse('manutencoes:analise_precos', args=['2026 - 200']))
+        analise = response.context['analise']
+        item_analise = next(a for a in analise if a['descricao'] == 'FILTRO DE OLEO')
+        # Histórico deve ter apenas 1 ocorrência (da outra OS), não incluir a própria
+        self.assertEqual(item_analise['ocorrencias'], 1)
+        self.assertAlmostEqual(float(item_analise['valor_medio']), 40.0, places=2)
+
+    def test_analise_precos_apenas_aprovados(self):
+        # Criar orçamento recusado em outra OS — não deve entrar no histórico
+        v3 = Veiculo.objects.create(placa='ANL0004', marca='TOYOTA', modelo='COROLLA')
+        m3 = Manutencao.objects.create(
+            numero_os='2026 - 203', veiculo=v3,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 1, 8, 0)),
+            status='Orçamentação',
+        )
+        orc_recusado = Orcamento.objects.create(
+            manutencao=m3, codigo_orcamento=2004,
+            data=datetime(2026, 2, 2).date(),
+            oficina='OFICINA RECUSADA', valor=Decimal('800.00'), status='Recusado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc_recusado, tipo='PCA', descricao='FILTRO DE OLEO',
+            marca='FRAM', valor_unit=Decimal('999.00'),
+            qtd=Decimal('1'), total=Decimal('999.00'),
+        )
+        response = self.client.get(reverse('manutencoes:analise_precos', args=['2026 - 200']))
+        analise = response.context['analise']
+        item_analise = next(a for a in analise if a['descricao'] == 'FILTRO DE OLEO')
+        # Só deve contar a ocorrência aprovada (valor_medio=40), não a recusada (999)
+        self.assertEqual(item_analise['ocorrencias'], 1)
+        self.assertAlmostEqual(float(item_analise['valor_medio']), 40.0, places=2)

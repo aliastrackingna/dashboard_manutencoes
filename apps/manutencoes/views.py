@@ -1,12 +1,15 @@
 import re
 from collections import OrderedDict
+from decimal import Decimal
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Max, Min, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Manutencao, Orcamento
+from .models import ItemOrcamento, Manutencao, Orcamento
+
+STATUSES_APROVADOS = ['Escolhido', 'Executado', 'Em Execução']
 
 OPCOES_POR_PAGINA = [20, 30, 50, 100]
 
@@ -157,6 +160,87 @@ def comparar_orcamentos(request, numero_os):
         'manutencao': manutencao,
         'orcamentos': orcamentos,
         'linhas': linhas,
+    })
+
+
+def analise_precos(request, numero_os):
+    manutencao = get_object_or_404(Manutencao, numero_os=numero_os)
+    orcamentos = manutencao.orcamentos.prefetch_related('itens').all()
+
+    # Agrupar itens por (descricao, tipo), priorizando orçamento vencedor
+    itens_por_chave = OrderedDict()
+    # Primeiro passa pelos orçamentos aprovados, depois os demais
+    orcamentos_ordenados = sorted(
+        orcamentos,
+        key=lambda o: (0 if o.status in STATUSES_APROVADOS else 1, o.valor),
+    )
+    for orc in orcamentos_ordenados:
+        for item in orc.itens.all():
+            if item.total == 0:
+                continue
+            chave = (item.descricao.upper().strip(), item.tipo)
+            if chave not in itens_por_chave:
+                itens_por_chave[chave] = item
+
+    # Para cada item único, consultar histórico de outras OS
+    analise = []
+    for (descricao, tipo), item in itens_por_chave.items():
+        historico = ItemOrcamento.objects.filter(
+            descricao__iexact=descricao,
+            tipo=tipo,
+            orcamento__status__in=STATUSES_APROVADOS,
+        ).exclude(
+            orcamento__manutencao=manutencao,
+        ).aggregate(
+            ocorrencias=Count('id'),
+            valor_min=Min('valor_unit'),
+            valor_max=Max('valor_unit'),
+            valor_medio=Avg('valor_unit'),
+        )
+
+        preco_atual = item.valor_unit
+        ocorrencias = historico['ocorrencias']
+        valor_medio = historico['valor_medio']
+
+        if ocorrencias > 0 and valor_medio:
+            variacao = ((preco_atual - Decimal(str(valor_medio))) / Decimal(str(valor_medio))) * 100
+            if variacao > 10:
+                classificacao = 'acima'
+            elif variacao < -10:
+                classificacao = 'abaixo'
+            else:
+                classificacao = 'dentro'
+        else:
+            variacao = None
+            classificacao = 'sem_historico'
+
+        analise.append({
+            'item': item,
+            'descricao': descricao,
+            'tipo': tipo,
+            'preco_atual': preco_atual,
+            'ocorrencias': ocorrencias,
+            'valor_min': historico['valor_min'],
+            'valor_max': historico['valor_max'],
+            'valor_medio': valor_medio,
+            'variacao': variacao,
+            'classificacao': classificacao,
+        })
+
+    # Ordenar: acima primeiro (maior variação no topo), depois dentro, abaixo, sem_historico
+    ordem_class = {'acima': 0, 'dentro': 1, 'abaixo': 2, 'sem_historico': 3}
+    analise.sort(key=lambda a: (ordem_class[a['classificacao']], -(a['variacao'] or 0)))
+
+    total_itens = len(analise)
+    itens_acima = sum(1 for a in analise if a['classificacao'] == 'acima')
+    itens_sem_historico = sum(1 for a in analise if a['classificacao'] == 'sem_historico')
+
+    return render(request, 'manutencoes/analise_precos.html', {
+        'manutencao': manutencao,
+        'analise': analise,
+        'total_itens': total_itens,
+        'itens_acima': itens_acima,
+        'itens_sem_historico': itens_sem_historico,
     })
 
 

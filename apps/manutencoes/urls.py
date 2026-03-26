@@ -9,4 +9,5 @@ urlpatterns = [
     path('oficinas/<path:nome>/', views.oficina_detalhe, name='oficina_detalhe'),
     path('<str:numero_os>/', views.detalhe, name='detalhe'),
     path('<str:numero_os>/comparar/', views.comparar_orcamentos, name='comparar_orcamentos'),
+    path('<str:numero_os>/analise-precos/', views.analise_precos, name='analise_precos'),
 ]
