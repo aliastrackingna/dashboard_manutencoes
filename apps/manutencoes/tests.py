@@ -455,6 +455,8 @@ class AnalisePrecosViewTest(TestCase):
         analise = response.context['analise']
         item_analise = analise[0]
         self.assertEqual(item_analise['ocorrencias'], 1)
+        self.assertIsNotNone(item_analise['valor_mediana'])
+        self.assertIn(item_analise['alerta'], ['baixo', 'medio', 'alto'])
         # Preço atual 50, média 40 → variação +25%
         self.assertAlmostEqual(float(item_analise['variacao']), 25.0, places=1)
         self.assertEqual(item_analise['classificacao'], 'acima')
@@ -514,3 +516,28 @@ class AnalisePrecosViewTest(TestCase):
         # Só deve contar a ocorrência aprovada (valor_medio=40), não a recusada (999)
         self.assertEqual(item_analise['ocorrencias'], 1)
         self.assertAlmostEqual(float(item_analise['valor_medio']), 40.0, places=2)
+
+    def test_analise_precos_usa_chave_canonica_para_variacoes(self):
+        v3 = Veiculo.objects.create(placa='ANL0005', marca='FORD', modelo='KA')
+        m3 = Manutencao.objects.create(
+            numero_os='2026 - 204', veiculo=v3,
+            data_abertura=timezone.make_aware(datetime(2026, 2, 5, 8, 0)),
+            status='Executada',
+        )
+        orc_hist = Orcamento.objects.create(
+            manutencao=m3, codigo_orcamento=2005,
+            data=datetime(2026, 2, 6).date(),
+            oficina='OFICINA VARIACAO', valor=Decimal('350.00'), status='Executado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc_hist, tipo='PCA', descricao='FILTRO / DE OLEO',
+            marca='BOSCH', valor_unit=Decimal('60.00'),
+            qtd=Decimal('1'), total=Decimal('60.00'),
+        )
+
+        response = self.client.get(reverse('manutencoes:analise_precos', args=['2026 - 200']))
+        analise = response.context['analise']
+        item_analise = next(a for a in analise if a['descricao'] == 'FILTRO DE OLEO')
+
+        self.assertEqual(item_analise['ocorrencias'], 2)
+        self.assertAlmostEqual(float(item_analise['valor_medio']), 50.0, places=2)

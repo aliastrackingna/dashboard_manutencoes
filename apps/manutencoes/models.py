@@ -1,5 +1,7 @@
 from django.db import models
 
+from .normalizacao import construir_chave_item_canonica
+
 
 class Manutencao(models.Model):
     numero_os = models.CharField(max_length=20, unique=True)
@@ -67,7 +69,10 @@ class ItemOrcamento(models.Model):
     tipo = models.CharField(max_length=3)  # PCA | SRV
     grupo = models.CharField(max_length=100, blank=True, default='')
     codigo_item = models.CharField(max_length=50, blank=True, default='')
+    codigo_item_normalizado = models.CharField(max_length=80, blank=True, default='', db_index=True)
     descricao = models.CharField(max_length=300)
+    descricao_normalizada = models.CharField(max_length=350, blank=True, default='', db_index=True)
+    chave_item_canonica = models.CharField(max_length=420, blank=True, default='', db_index=True)
     marca = models.CharField(max_length=100, blank=True, default='')
     valor_unit = models.DecimalField(max_digits=12, decimal_places=2)
     qtd = models.DecimalField(max_digits=10, decimal_places=3)
@@ -81,3 +86,10 @@ class ItemOrcamento(models.Model):
 
     def __str__(self):
         return f'{self.tipo} — {self.descricao}'
+
+    def save(self, *args, **kwargs):
+        normalizado = construir_chave_item_canonica(self.tipo, self.codigo_item, self.descricao)
+        self.codigo_item_normalizado = normalizado['codigo_item_normalizado']
+        self.descricao_normalizada = normalizado['descricao_normalizada']
+        self.chave_item_canonica = normalizado['chave_item_canonica']
+        super().save(*args, **kwargs)

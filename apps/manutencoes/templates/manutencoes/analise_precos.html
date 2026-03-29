@@ -22,7 +22,7 @@
     </div>
 
     <!-- Resumo -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <p class="text-xs text-gray-400">Total de itens</p>
             <p class="text-2xl font-bold">{{ total_itens }}</p>
@@ -35,21 +35,29 @@
             <p class="text-xs text-yellow-500">Sem histórico</p>
             <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ itens_sem_historico }}</p>
         </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-700 p-4">
+            <p class="text-xs text-red-500">Alerta alto</p>
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ itens_alerta_alto }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-amber-200 dark:border-amber-700 p-4">
+            <p class="text-xs text-amber-500">Alerta médio</p>
+            <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ itens_alerta_medio }}</p>
+        </div>
     </div>
 
     <!-- Legenda -->
     <div class="flex flex-wrap gap-4 mb-4 text-xs">
         <span class="flex items-center gap-1">
             <span class="inline-block w-3 h-3 rounded bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700"></span>
-            Abaixo da média (&lt; -10%)
+            Abaixo da mediana (&lt; -10%)
         </span>
         <span class="flex items-center gap-1">
             <span class="inline-block w-3 h-3 rounded bg-gray-100 dark:bg-gray-600 border border-gray-300 dark:border-gray-500"></span>
-            Na média (±10%)
+            Na mediana (±10%)
         </span>
         <span class="flex items-center gap-1">
             <span class="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700"></span>
-            Acima da média (&gt; +10%)
+            Acima da mediana (&gt; +10%)
         </span>
         <span class="flex items-center gap-1">
             <span class="inline-block w-3 h-3 rounded bg-yellow-100 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700"></span>
@@ -67,8 +75,11 @@
                     <th class="px-4 py-3 text-left text-xs font-semibold">Marca</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold">Preço Atual</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold">Média Histórica</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold">Mediana</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold">Min – Max</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold">Dispersão</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold">Variação</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold">Alerta</th>
                     <th class="px-4 py-3 text-center text-xs font-semibold">Ocorrências</th>
                 </tr>
             </thead>
@@ -95,9 +106,26 @@
                         <span class="text-gray-400">—</span>
                         {% endif %}
                     </td>
+                    <td class="px-4 py-2 text-right">
+                        {% if a.valor_mediana %}
+                        R$ {{ a.valor_mediana|brl }}
+                        {% else %}
+                        <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-2 text-right text-xs text-gray-500">
                         {% if a.valor_min %}
                         R$ {{ a.valor_min|brl }} – R$ {{ a.valor_max|brl }}
+                        {% else %}
+                        <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-right text-xs text-gray-500">
+                        {% if a.dispersao_iqr != None and a.q1 != None and a.q3 != None %}
+                        IQR: R$ {{ a.q1|brl }} – R$ {{ a.q3|brl }}
+                        {% if a.dispersao_pct != None %}
+                        <br><span class="text-[11px]">({{ a.dispersao_pct|floatformat:1 }}%)</span>
+                        {% endif %}
                         {% else %}
                         <span class="text-gray-400">—</span>
                         {% endif %}
@@ -113,11 +141,22 @@
                         <span class="text-yellow-500">Novo</span>
                         {% endif %}
                     </td>
+                    <td class="px-4 py-2 text-center">
+                        {% if a.alerta == 'alto' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Alto</span>
+                        {% elif a.alerta == 'medio' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Médio</span>
+                        {% elif a.alerta == 'baixo' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Baixo</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Sem histórico</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-2 text-center">{{ a.ocorrencias }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-400">
+                    <td colspan="11" class="px-4 py-8 text-center text-gray-400">
                         Nenhum item encontrado nos orçamentos desta OS.
                     </td>
                 </tr>
@@ -128,7 +167,33 @@
 
     <!-- Nota explicativa -->
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
-        <strong>Nota:</strong> O preço atual exibido é o do orçamento vencedor (Escolhido, Executado ou Em Execução). Quando não há orçamento aprovado, é utilizado o de menor valor total.
+        <strong>Nota:</strong> O preço atual exibido é o do orçamento vencedor (Escolhido, Executado ou Em Execução). A dispersão usa IQR (Q1–Q3), métrica menos sensível a outliers pesados.
     </p>
+
+    <details class="mt-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <summary class="px-4 py-3 cursor-pointer text-sm font-semibold select-none">
+            Como entender IQR (explicação simples)
+        </summary>
+        <div class="px-4 pb-4 text-sm text-gray-600 dark:text-gray-300 space-y-2">
+            <p>
+                <strong>Fórmula:</strong> <code>IQR = Q3 - Q1</code>
+            </p>
+            <p>
+                <strong>Q1</strong> é o ponto onde 25% dos preços ficam abaixo. <strong>Q3</strong> é o ponto onde 75% dos preços ficam abaixo.
+            </p>
+            <p>
+                Pense nos preços em fila (do menor para o maior): o IQR é o tamanho do <strong>miolo</strong> dos preços.
+                Se o IQR for grande, os preços variam muito. Se for pequeno, os preços são mais parecidos.
+            </p>
+            <p>
+                <strong>Exemplo:</strong> se <strong>Q1 = R$ 166,71</strong> e <strong>Q3 = R$ 528,75</strong>, então
+                <strong>IQR = 528,75 - 166,71 = R$ 362,04</strong>. Se o preço atual for <strong>R$ 200,25</strong>,
+                ele está dentro da faixa central e tende a ter alerta menor.
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Dica rápida: <strong>mediana = preço do meio</strong>; <strong>IQR = tamanho do miolo</strong>.
+            </p>
+        </div>
+    </details>
 </div>
 {% endblock %}

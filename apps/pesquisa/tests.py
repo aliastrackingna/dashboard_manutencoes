@@ -178,3 +178,123 @@ class PesquisaViewTest(TransactionTestCase):
         self.assertTrue(len(response.context['resultados']) > 0)
         descricoes = [r['descricao'] for r in response.context['resultados']]
         self.assertIn('PASTILHA DE FREIO', descricoes)
+
+    def test_agrupar_variacoes_por_chave_canonica(self):
+        orc = Orcamento.objects.get(codigo_orcamento=100)
+        ItemOrcamento.objects.create(
+            orcamento=orc,
+            tipo='PCA',
+            grupo='Filtros',
+            codigo_item='PLACA-12',
+            descricao='FILTRO / DE OLEO',
+            marca='WEGA',
+            valor_unit=Decimal('60.00'),
+            qtd=Decimal('1'),
+            total=Decimal('60.00'),
+        )
+
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'FILTRO'})
+        self.assertEqual(response.status_code, 200)
+
+        alvo = [r for r in response.context['resultados'] if r['codigo_item'] in ['PLACA12', 'PLACA-12']]
+        self.assertEqual(len(alvo), 1)
+        self.assertEqual(alvo[0]['ocorrencias'], 2)
+
+    def test_exemplos_prioriza_cancelado_recusado_para_analise(self):
+        orc_recusado = Orcamento.objects.get(codigo_orcamento=101)
+        ItemOrcamento.objects.create(
+            orcamento=orc_recusado,
+            tipo='PCA',
+            grupo='Filtros',
+            codigo_item='PLACA12',
+            descricao='FILTRO DE OLEO',
+            marca='WEGA',
+            valor_unit=Decimal('999.00'),
+            qtd=Decimal('1'),
+            total=Decimal('999.00'),
+        )
+
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'FILTRO'})
+        self.assertEqual(response.status_code, 200)
+
+        alvo = next(r for r in response.context['resultados'] if r['codigo_item'] == 'PLACA12')
+        os_unicas = {e['os'] for e in alvo['exemplos']}
+        self.assertEqual(len(os_unicas), 1)
+        self.assertEqual(alvo['exemplos'][0]['orcamento'], 101)
+
+    def test_busca_por_termos_separados_encontra_variacoes_numericas(self):
+        orc = Orcamento.objects.get(codigo_orcamento=100)
+        ItemOrcamento.objects.create(
+            orcamento=orc,
+            tipo='PCA',
+            grupo='Pneus',
+            codigo_item='1956515',
+            descricao='PNEU DUNLOP',
+            marca='DUNLOP',
+            valor_unit=Decimal('650.00'),
+            qtd=Decimal('1'),
+            total=Decimal('650.00'),
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc,
+            tipo='PCA',
+            grupo='Pneus',
+            codigo_item='195 65 15',
+            descricao='PNEU 195 65 15R DUNLOP',
+            marca='DUNLOP',
+            valor_unit=Decimal('670.00'),
+            qtd=Decimal('1'),
+            total=Decimal('670.00'),
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc,
+            tipo='PCA',
+            grupo='Pneus',
+            codigo_item='195/65/15',
+            descricao='PNEU 195/65/15R DUNLOP',
+            marca='DUNLOP',
+            valor_unit=Decimal('690.00'),
+            qtd=Decimal('1'),
+            total=Decimal('690.00'),
+        )
+        rebuild_fts()
+
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'DUNLOP 195 65'})
+        self.assertEqual(response.status_code, 200)
+
+        pneus = [r for r in response.context['resultados'] if 'DUNLOP' in r['descricao']]
+        self.assertTrue(len(pneus) > 0)
+        self.assertGreaterEqual(max(r['ocorrencias'] for r in pneus), 2)
+
+    def test_agrupar_mesmo_item_com_e_sem_codigo(self):
+        orc = Orcamento.objects.get(codigo_orcamento=100)
+        ItemOrcamento.objects.create(
+            orcamento=orc,
+            tipo='PCA',
+            grupo='Pneus',
+            codigo_item='1956515',
+            descricao='PNEU 195/65/15R DUNLOP',
+            marca='DUNLOP',
+            valor_unit=Decimal('700.00'),
+            qtd=Decimal('1'),
+            total=Decimal('700.00'),
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc,
+            tipo='PCA',
+            grupo='Pneus',
+            codigo_item='',
+            descricao='PNEU 195 65 15R DUNLOP',
+            marca='DUNLOP',
+            valor_unit=Decimal('710.00'),
+            qtd=Decimal('1'),
+            total=Decimal('710.00'),
+        )
+        rebuild_fts()
+
+        response = self.client.get(reverse('pesquisa:itens'), {'q': 'DUNLOP 195 65'})
+        self.assertEqual(response.status_code, 200)
+
+        pneus = [r for r in response.context['resultados'] if 'DUNLOP' in r['descricao']]
+        self.assertTrue(len(pneus) > 0)
+        self.assertGreaterEqual(max(r['ocorrencias'] for r in pneus), 2)

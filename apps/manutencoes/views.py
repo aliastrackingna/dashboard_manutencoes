@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 from datetime import timedelta
 from decimal import Decimal
+from math import ceil, floor
 
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -10,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .models import ItemOrcamento, Manutencao, Orcamento
+from .normalizacao import construir_chave_item_canonica
 
 STATUSES_APROVADOS = ['Escolhido', 'Executado', 'Em Execução']
 
@@ -105,6 +107,34 @@ def _buscar_historico_item(historico_por_assinatura, assinaturas):
         if historico:
             return historico
     return None
+
+
+def _chave_canonica_item(item):
+    if item.chave_item_canonica:
+        return item.chave_item_canonica
+    normalizado = construir_chave_item_canonica(item.tipo, item.codigo_item, item.descricao)
+    return normalizado['chave_item_canonica']
+
+
+def _percentil_decimal(valores_ordenados, percentual):
+    if not valores_ordenados:
+        return None
+
+    posicao = (len(valores_ordenados) - 1) * percentual
+    inferior = floor(posicao)
+    superior = ceil(posicao)
+
+    if inferior == superior:
+        return valores_ordenados[inferior]
+
+    peso_superior = Decimal(str(posicao - inferior))
+    peso_inferior = Decimal('1') - peso_superior
+    return (valores_ordenados[inferior] * peso_inferior) + (valores_ordenados[superior] * peso_superior)
+
+
+def _mediana_decimal(valores):
+    ordenados = sorted(valores)
+    return _percentil_decimal(ordenados, 0.5)
 
 
 def lista(request):
@@ -267,7 +297,7 @@ def analise_precos(request, numero_os):
     manutencao = get_object_or_404(Manutencao, numero_os=numero_os)
     orcamentos = manutencao.orcamentos.prefetch_related('itens').all()
 
-    # Agrupar itens por (descricao, tipo), priorizando orçamento vencedor
+    # Agrupar itens por chave canônica, priorizando orçamento vencedor
     itens_por_chave = OrderedDict()
     # Primeiro passa pelos orçamentos aprovados, depois os demais
     orcamentos_ordenados = sorted(
@@ -278,32 +308,54 @@ def analise_precos(request, numero_os):
         for item in orc.itens.all():
             if item.total == 0:
                 continue
-            chave = (item.descricao.upper().strip(), item.tipo)
+            chave = _chave_canonica_item(item)
             if chave not in itens_por_chave:
                 itens_por_chave[chave] = item
 
     # Para cada item único, consultar histórico de outras OS
     analise = []
-    for (descricao, tipo), item in itens_por_chave.items():
-        historico = ItemOrcamento.objects.filter(
-            descricao__iexact=descricao,
-            tipo=tipo,
+    for chave_canonica, item in itens_por_chave.items():
+        historico_qs = ItemOrcamento.objects.filter(
             orcamento__status__in=STATUSES_APROVADOS,
         ).exclude(
             orcamento__manutencao=manutencao,
-        ).aggregate(
+        )
+
+        if chave_canonica:
+            historico_qs = historico_qs.filter(chave_item_canonica=chave_canonica)
+        else:
+            historico_qs = historico_qs.filter(
+                descricao__iexact=item.descricao,
+                tipo=item.tipo,
+            )
+
+        historico = historico_qs.aggregate(
             ocorrencias=Count('id'),
             valor_min=Min('valor_unit'),
             valor_max=Max('valor_unit'),
             valor_medio=Avg('valor_unit'),
         )
 
+        valores_historicos = list(historico_qs.values_list('valor_unit', flat=True))
+        valores_historicos_ordenados = sorted(valores_historicos)
+        mediana = _mediana_decimal(valores_historicos_ordenados)
+        q1 = _percentil_decimal(valores_historicos_ordenados, 0.25)
+        q3 = _percentil_decimal(valores_historicos_ordenados, 0.75)
+        dispersao_iqr = (q3 - q1) if q1 is not None and q3 is not None else None
+
+        if mediana and mediana != 0 and dispersao_iqr is not None:
+            dispersao_pct = (dispersao_iqr / mediana) * 100
+        else:
+            dispersao_pct = None
+
         preco_atual = item.valor_unit
         ocorrencias = historico['ocorrencias']
         valor_medio = historico['valor_medio']
+        referencia_variacao = mediana if mediana is not None else valor_medio
 
-        if ocorrencias > 0 and valor_medio:
-            variacao = ((preco_atual - Decimal(str(valor_medio))) / Decimal(str(valor_medio))) * 100
+        if ocorrencias > 0 and referencia_variacao:
+            referencia_decimal = Decimal(str(referencia_variacao))
+            variacao = ((preco_atual - referencia_decimal) / referencia_decimal) * 100
             if variacao > 10:
                 classificacao = 'acima'
             elif variacao < -10:
@@ -314,26 +366,59 @@ def analise_precos(request, numero_os):
             variacao = None
             classificacao = 'sem_historico'
 
+        if ocorrencias == 0 or mediana is None:
+            alerta = 'sem_historico'
+        elif mediana == 0:
+            alerta = 'sem_historico'
+        else:
+            variacao_mediana = ((preco_atual - mediana) / mediana) * 100
+            if dispersao_iqr is not None and ocorrencias >= 4:
+                limite_medio = mediana + dispersao_iqr
+                limite_alto = mediana + (dispersao_iqr * Decimal('2'))
+                if preco_atual >= limite_alto:
+                    alerta = 'alto'
+                elif preco_atual >= limite_medio:
+                    alerta = 'medio'
+                else:
+                    alerta = 'baixo'
+            else:
+                if variacao_mediana > 25:
+                    alerta = 'alto'
+                elif variacao_mediana > 10:
+                    alerta = 'medio'
+                else:
+                    alerta = 'baixo'
+
         analise.append({
             'item': item,
-            'descricao': descricao,
-            'tipo': tipo,
+            'descricao': item.descricao.upper().strip(),
+            'tipo': item.tipo,
             'preco_atual': preco_atual,
             'ocorrencias': ocorrencias,
             'valor_min': historico['valor_min'],
             'valor_max': historico['valor_max'],
             'valor_medio': valor_medio,
+            'valor_mediana': mediana,
+            'q1': q1,
+            'q3': q3,
+            'dispersao_iqr': dispersao_iqr,
+            'dispersao_pct': dispersao_pct,
             'variacao': variacao,
             'classificacao': classificacao,
+            'alerta': alerta,
+            'chave_item_canonica': chave_canonica,
         })
 
-    # Ordenar: acima primeiro (maior variação no topo), depois dentro, abaixo, sem_historico
+    # Ordenar: alerta alto primeiro, depois classificação e variação
+    ordem_alerta = {'alto': 0, 'medio': 1, 'baixo': 2, 'sem_historico': 3}
     ordem_class = {'acima': 0, 'dentro': 1, 'abaixo': 2, 'sem_historico': 3}
-    analise.sort(key=lambda a: (ordem_class[a['classificacao']], -(a['variacao'] or 0)))
+    analise.sort(key=lambda a: (ordem_alerta[a['alerta']], ordem_class[a['classificacao']], -(a['variacao'] or 0)))
 
     total_itens = len(analise)
     itens_acima = sum(1 for a in analise if a['classificacao'] == 'acima')
     itens_sem_historico = sum(1 for a in analise if a['classificacao'] == 'sem_historico')
+    itens_alerta_alto = sum(1 for a in analise if a['alerta'] == 'alto')
+    itens_alerta_medio = sum(1 for a in analise if a['alerta'] == 'medio')
 
     return render(request, 'manutencoes/analise_precos.html', {
         'manutencao': manutencao,
@@ -341,6 +426,8 @@ def analise_precos(request, numero_os):
         'total_itens': total_itens,
         'itens_acima': itens_acima,
         'itens_sem_historico': itens_sem_historico,
+        'itens_alerta_alto': itens_alerta_alto,
+        'itens_alerta_medio': itens_alerta_medio,
     })
 
 
