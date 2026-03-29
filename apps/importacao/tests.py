@@ -81,7 +81,7 @@ class ImportarManutencoesTest(TestCase):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 59', 'EMPRESA TICO', 'Serviços Gerais',
              'PLACA77', '', 'Kombi 1.4 flex', '04/02/2026 13:01', '', '', '',
-             'Troca de óleo', 'Orçamentação', '', '0,00', '0,00', '0,00'],
+             '', 'Troca de óleo', 'Orçamentação', '', '0,00', '0,00', '0,00'],
         ])
         resultado = importar_manutencoes(csv)
         self.assertEqual(resultado['inseridos'], 1)
@@ -92,11 +92,11 @@ class ImportarManutencoesTest(TestCase):
     def test_importar_manutencao_update(self):
         csv1 = self._make_csv([
             ['', '', '', '3', '2026 - 59', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
         ])
         csv2 = self._make_csv([
             ['', '', '', '3', '2026 - 59', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Executada', '', '100,00', '50,00', '150,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc', 'Executada', '', '100,00', '50,00', '150,00'],
         ])
         importar_manutencoes(csv1)
         resultado = importar_manutencoes(csv2)
@@ -108,7 +108,7 @@ class ImportarManutencoesTest(TestCase):
     def test_status_integrada_financeiro_vira_executada(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 70', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Integrada Financeiro', '', '0,00', '0,00', '0,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc', 'Integrada Financeiro', '', '0,00', '0,00', '0,00'],
         ])
         importar_manutencoes(csv)
         m = Manutencao.objects.get(numero_os='2026 - 70')
@@ -117,7 +117,7 @@ class ImportarManutencoesTest(TestCase):
     def test_status_xpto_vira_executada(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 71', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'XPTO', '', '0,00', '0,00', '0,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc', 'XPTO', '', '0,00', '0,00', '0,00'],
         ])
         importar_manutencoes(csv)
         m = Manutencao.objects.get(numero_os='2026 - 71')
@@ -126,7 +126,7 @@ class ImportarManutencoesTest(TestCase):
     def test_auto_criar_veiculo_se_nao_existir(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 99', 'UNB', 'SG', 'NEW1234', '',
-             'Novo Modelo', '04/02/2026 13:01', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
+             'Novo Modelo', '04/02/2026 13:01', '', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
         ])
         importar_manutencoes(csv)
         self.assertTrue(Veiculo.objects.filter(placa='NEW1234').exists())
@@ -230,7 +230,7 @@ class ImportarManutencoesNumeroPontuadoTest(TestCase):
     def test_importar_os_numero_pontuado(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Troca de óleo', 'Orçamentação', '', '0,00', '0,00', '0,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Troca de óleo', 'Orçamentação', '', '0,00', '0,00', '0,00'],
         ])
         resultado = importar_manutencoes(csv)
         self.assertEqual(resultado['inseridos'], 1)
@@ -241,7 +241,7 @@ class ImportarManutencoesNumeroPontuadoTest(TestCase):
     def test_importar_os_numero_pontuado_milhares(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 10.250', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '10/03/2026 09:00', '', '', '', 'Revisão', 'Lançada', '', '0,00', '0,00', '0,00'],
+             'Kombi', '10/03/2026 09:00', '', '', '', '', 'Revisão', 'Lançada', '', '0,00', '0,00', '0,00'],
         ])
         resultado = importar_manutencoes(csv)
         self.assertEqual(resultado['inseridos'], 1)
@@ -251,11 +251,11 @@ class ImportarManutencoesNumeroPontuadoTest(TestCase):
     def test_update_os_numero_pontuado(self):
         csv1 = self._make_csv([
             ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc', 'Lançada', '', '0,00', '0,00', '0,00'],
         ])
         csv2 = self._make_csv([
             ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc', 'Executada', '', '500,00', '200,00', '700,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc', 'Executada', '', '500,00', '200,00', '700,00'],
         ])
         importar_manutencoes(csv1)
         resultado = importar_manutencoes(csv2)
@@ -267,11 +267,11 @@ class ImportarManutencoesNumeroPontuadoTest(TestCase):
     def test_importar_multiplas_os_pontuadas(self):
         csv = self._make_csv([
             ['', '', '', '3', '2026 - 1.010', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '04/02/2026 13:01', '', '', '', 'Desc 1', 'Lançada', '', '0,00', '0,00', '0,00'],
+             'Kombi', '04/02/2026 13:01', '', '', '', '', 'Desc 1', 'Lançada', '', '0,00', '0,00', '0,00'],
             ['', '', '', '3', '2026 - 1.011', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '05/02/2026 14:00', '', '', '', 'Desc 2', 'Orçamentação', '', '100,00', '50,00', '150,00'],
+             'Kombi', '05/02/2026 14:00', '', '', '', '', 'Desc 2', 'Orçamentação', '', '100,00', '50,00', '150,00'],
             ['', '', '', '3', '2026 - 2.500', 'UNB', 'SG', 'PLACA77', '',
-             'Kombi', '06/02/2026 08:30', '', '', '', 'Desc 3', 'Executada', '', '0,00', '0,00', '0,00'],
+             'Kombi', '06/02/2026 08:30', '', '', '', '', 'Desc 3', 'Executada', '', '0,00', '0,00', '0,00'],
         ])
         resultado = importar_manutencoes(csv)
         self.assertEqual(resultado['inseridos'], 3)
@@ -392,7 +392,7 @@ class PipelineIntegracaoTest(TestCase):
     def test_pipeline_completo(self):
         veiculos_csv = io.StringIO("Placa,Marca,Modelo,unidade\nPLACA13,HONDA,FIT,\n")
         manutencoes_csv = io.StringIO(
-            '"";"";"";\"3\";\"2026 - 85\";\"UNB\";\"SG\";\"PLACA13\";\"\";\"FIT\";\"12/02/2026 10:16\";\"\";\"\";\"\";\"Desc\";\"Em Execução\";\"\";\"1.938,92\";\"367,13\";\"2.306,05\"'
+            '"";"";"";\"3\";\"2026 - 85\";\"UNB\";\"SG\";\"PLACA13\";\"\";\"FIT\";\"12/02/2026 10:16\";\"\";\"\";\"\";\"\";\"Desc\";\"Em Execução\";\"\";\"1.938,92\";\"367,13\";\"2.306,05\"'
         )
         orcamentos_csv = io.StringIO(
             'numero_os,codigo_orcamento,data,oficina,valor,status\n'
