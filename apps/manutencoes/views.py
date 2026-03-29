@@ -1,11 +1,13 @@
 import re
 from collections import OrderedDict
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Max, Min, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .models import ItemOrcamento, Manutencao, Orcamento
 
@@ -21,6 +23,88 @@ STATUS_CHOICES = [
     'Executada',
     'Orçamentação',
 ]
+
+
+def _normalizar_texto(valor):
+    return re.sub(r'\s+', ' ', (valor or '').strip().upper())
+
+
+def _assinaturas_item(item):
+    assinaturas = []
+    codigo = _normalizar_texto(item.codigo_item)
+    if codigo:
+        assinaturas.append(('codigo', codigo))
+
+    descricao = _normalizar_texto(item.descricao)
+    if descricao:
+        assinaturas.append(('descricao', descricao))
+
+    return assinaturas
+
+
+def _montar_historico_itens(manutencao, janela_meses):
+    referencia = manutencao.data_abertura or timezone.now()
+    limite = referencia - timedelta(days=janela_meses * 30)
+
+    historico_qs = ItemOrcamento.objects.filter(
+        orcamento__manutencao__veiculo=manutencao.veiculo,
+        orcamento__manutencao__status='Executada',
+        orcamento__status__in=STATUSES_APROVADOS,
+    ).exclude(
+        orcamento__manutencao=manutencao,
+    )
+
+    if manutencao.data_abertura:
+        historico_qs = historico_qs.filter(
+            orcamento__manutencao__data_abertura__lt=manutencao.data_abertura,
+        )
+
+    historico_qs = historico_qs.select_related(
+        'orcamento',
+        'orcamento__manutencao',
+    ).order_by(
+        '-orcamento__manutencao__data_abertura',
+        '-orcamento__id',
+    )
+
+    por_assinatura = {}
+    for item in historico_qs:
+        assinaturas = _assinaturas_item(item)
+        if not assinaturas:
+            continue
+
+        manutencao_hist = item.orcamento.manutencao
+        data_hist = manutencao_hist.data_encerramento or manutencao_hist.data_abertura
+        if not data_hist:
+            continue
+
+        dias_desde = max((referencia.date() - data_hist.date()).days, 0)
+        meses_desde = round(dias_desde / 30, 1)
+
+        payload = {
+            'numero_os': manutencao_hist.numero_os,
+            'oficina': item.orcamento.oficina,
+            'data': data_hist,
+            'valor_unit': item.valor_unit,
+            'total': item.total,
+            'meses_desde': meses_desde,
+            'dias_desde': dias_desde,
+            'alerta_repeticao': data_hist >= limite,
+        }
+
+        for assinatura in assinaturas:
+            if assinatura not in por_assinatura:
+                por_assinatura[assinatura] = payload
+
+    return por_assinatura
+
+
+def _buscar_historico_item(historico_por_assinatura, assinaturas):
+    for assinatura in assinaturas:
+        historico = historico_por_assinatura.get(assinatura)
+        if historico:
+            return historico
+    return None
 
 
 def lista(request):
@@ -92,6 +176,8 @@ def detalhe(request, numero_os):
 def comparar_orcamentos(request, numero_os):
     manutencao = get_object_or_404(Manutencao, numero_os=numero_os)
     orcamentos = list(manutencao.orcamentos.prefetch_related('itens').all())
+    comparar_historico = True
+    janela_meses = 24
 
     if len(orcamentos) < 2:
         messages.warning(request, 'É necessário pelo menos 2 orçamentos para comparar.')
@@ -109,11 +195,19 @@ def comparar_orcamentos(request, numero_os):
                 continue
             chave = item.codigo_item if item.codigo_item else item.descricao
             if chave not in todas_chaves:
-                todas_chaves[chave] = item.descricao
+                todas_chaves[chave] = {
+                    'descricao': item.descricao,
+                    'assinaturas': _assinaturas_item(item),
+                }
+
+    historico_por_assinatura = {}
+    if comparar_historico:
+        historico_por_assinatura = _montar_historico_itens(manutencao, janela_meses)
 
     # Montar linhas de comparação
     linhas = []
-    for chave, descricao in todas_chaves.items():
+    for chave, dados_item in todas_chaves.items():
+        descricao = dados_item['descricao']
         valores = {}
         for orc in orcamentos:
             item_encontrado = None
@@ -152,6 +246,10 @@ def comparar_orcamentos(request, numero_os):
             'descricao': descricao.upper(),
             'celulas': celulas,
             'exclusivo': exclusivo,
+            'historico': _buscar_historico_item(
+                historico_por_assinatura,
+                dados_item['assinaturas'],
+            ),
         })
 
     linhas.sort(key=lambda l: l['descricao'])
@@ -160,6 +258,8 @@ def comparar_orcamentos(request, numero_os):
         'manutencao': manutencao,
         'orcamentos': orcamentos,
         'linhas': linhas,
+        'comparar_historico': comparar_historico,
+        'janela_meses': janela_meses,
     })
 
 

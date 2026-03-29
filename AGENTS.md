@@ -1,190 +1,164 @@
-# AGENTS.md - Manutenção Frota Dashboard
+# AGENTS.md - qfrotas_dashboard
 
-## Project Overview
-- **Framework**: Django 6.0
-- **Language**: Python 3.x
-- **Database**: SQLite3
-- **Frontend**: TailwindCSS (via CDN)
+## Project Snapshot
+- Stack: Django 6.0, Python 3.12, SQLite, TailwindCSS/Chart.js via CDN.
+- App language: Brazilian Portuguese for model fields, variables, UI labels, URLs.
+- Architecture: function-based views across apps in `apps/`; shared config in `config/`.
+- Main data flow: CSV import (`apps/importacao`) -> ORM upsert -> SQLite -> KPI/FTS refresh.
 
-## Project Structure
-```
-frotas_dashboard/
-├── apps/                    # Django applications
-│   ├── configuracoes/       # Settings
-│   ├── dashboard/           # Main dashboard
-│   ├── importacao/          # CSV import
-│   ├── manutencoes/         # Maintenance
-│   ├── pesquisa/            # Search
-│   └── veiculos/            # Vehicle management
-├── config/                  # Django settings
-├── manage.py
-├── requirements.txt
-├── static/
-└── templates/
-```
+## Agent Rule Sources
+- `.cursor/rules/`: not present.
+- `.cursorrules`: not present.
+- `.github/copilot-instructions.md`: not present.
+- This file and `CLAUDE.md` are the active agent guidance in this repository.
 
----
-
-## Build / Run / Test Commands
-
-**IMPORTANTE:** Sempre ative o virtual environment antes de executar qualquer comando:
+## Environment Setup
 ```bash
+# from repository root
+python -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
 ```
 
+## Build / Run / Lint / Test Commands
+
+### Core local commands
 ```bash
-# Development server
+# dev server
+source venv/bin/activate
 python manage.py runserver
 
-# Run all tests (paralelo, 1 banco por processo)
-python manage.py test --parallel $(nproc)
-
-# Run tests for specific app
-python manage.py test apps.veiculos
-
-# Run single test class
-python manage.py test apps.veiculos.tests.VeiculoModelTest
-
-# Run single test method
-python manage.py test apps.veiculos.tests.VeiculoModelTest.test_criar_veiculo
-
-# Migrations
+# database
 python manage.py makemigrations
 python manage.py migrate
 
-# Check for issues
+# django checks (closest thing to lint in this repo)
 python manage.py check
+
+# django shell
 python manage.py shell
+
+# optional coverage
+coverage run manage.py test --parallel $(nproc)
+coverage report -m
 ```
 
----
+### Tests (including single test execution)
+```bash
+# all tests
+python manage.py test --parallel $(nproc)
+
+# one app
+python manage.py test apps.veiculos
+
+# one module
+python manage.py test apps.importacao.tests
+
+# one test class
+python manage.py test apps.veiculos.tests.VeiculoModelTest
+
+# one test method (most important for quick iteration)
+python manage.py test apps.veiculos.tests.VeiculoModelTest.test_criar_veiculo
+```
+
+### Docker commands
+```bash
+# build and run stack (gunicorn + nginx + cron)
+docker-compose up -d --build
+
+# stop stack
+docker-compose down
+
+# logs
+docker-compose logs -f dashboard_web
+```
+
+## Project Layout
+```text
+apps/
+  acompanhamento/  auditoria/  configuracoes/  dashboard/  importacao/
+  manutencoes/     multas/     pesquisa/       relatorios/ veiculos/
+config/            # settings, urls, middleware
+templates/         # base templates + app templates
+static/            # static assets
+```
 
 ## Code Style Guidelines
 
-### General
-- **Language**: Portuguese (Brazilian) for variables, fields, views, UI
-- **Line length**: Max 120 characters
-- **Indentation**: 4 spaces
-- **Quotes**: Single quotes unless double needed
+### Formatting and structure
+- Follow PEP 8 with max line length 120 and 4-space indentation.
+- Prefer single quotes unless double quotes improve readability.
+- Keep views function-based (project convention); avoid introducing CBVs unless asked.
+- Keep functions focused and short; extract helpers for repeated filter/pagination logic.
 
-### Imports (alphabetical within groups)
+### Imports
+- Group imports in this order: stdlib -> third-party -> local app imports.
+- Keep alphabetical order inside each group.
+- Use one import per line (except `from x import a, b` when tightly related).
+
+Example:
 ```python
-# Standard library
-import os
-from datetime import date
+from datetime import datetime
 
-# Third-party
-from django.contrib import admin
-from django.db import models
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
 
-# Local apps
+from apps.auditoria.models import LogAuditoria
+from .forms import VeiculoForm
 from .models import Veiculo
 ```
 
-### Naming Conventions
-| Element | Convention | Example |
-|---------|------------|---------|
-| Models | PascalCase | `Veiculo` |
-| Fields/Methods | snake_case | `placa`, `criar()` |
-| Constants | UPPER_SNAKE | `PAGE_SIZE = 25` |
-| URLs | snake_case | `path('lista/', ...)` |
+### Naming conventions
+- Models/classes: `PascalCase` (example: `Veiculo`, `LogAuditoria`).
+- Functions, methods, variables, fields: `snake_case` in Portuguese.
+- Constants: `UPPER_SNAKE_CASE`.
+- URL names and paths: short `snake_case` (`lista`, `criar`, `detalhe`).
+- Test classes: `<Feature>Test`; test methods: `test_<comportamento>`.
 
-### Models
-- Base: `models.Model`
-- Always define `__str__` and `Meta` with `ordering`
-- Use verbose names in Portuguese
-- Foreign keys: `on_delete=models.PROTECT`, use `related_name`
-- Optional fields: `blank=True, default=''` or `null=True, blank=True`
+### Types and annotations
+- Type hints are used selectively; keep them where they add clarity.
+- Prefer explicit return annotations for parser/helper functions.
+- Use modern union syntax (`datetime | None`) where appropriate.
+- Do not add heavy typing boilerplate to simple Django views/forms.
 
-### Views (Function-Based)
-- Use `get_object_or_404` for single objects
-- Use Django pagination:
-  ```python
-  paginator = Paginator(qs, 25)
-  page = paginator.get_page(request.GET.get('page'))
-  ```
-- Use `messages` for feedback:
-  ```python
-  messages.success(request, 'Veículo criado com sucesso.')
-  ```
+### Django model conventions
+- Always define `__str__`.
+- Define `Meta.ordering`; include `verbose_name`/`verbose_name_plural` when useful.
+- Monetary values must use `DecimalField` and `Decimal` in Python code.
+- Prefer `on_delete=models.PROTECT` for critical relations; keep existing CASCADE where domain already relies on it.
+- For optional text fields, use `blank=True, default=''`; for optional dates, `null=True, blank=True`.
+- Keep explicit `related_name` on foreign keys.
 
-### Forms
-- Use `forms.ModelForm`
-- Define widgets with TailwindCSS classes
+### Views, forms, templates
+- Use `get_object_or_404` for object lookup endpoints.
+- Paginate list pages with `Paginator(..., 25)`.
+- Use `django.contrib.messages` for user feedback after POST actions.
+- Follow POST/redirect/GET for successful form submissions.
+- Use `ModelForm` for CRUD; keep Tailwind classes in widget attrs.
+- Templates: app-local `templates/<app_name>/...`; use `{% extends %}`, `{% block %}`, `{% url %}`.
 
-### Templates
-- Use `.html` extension
-- App-level `templates/<app_name>/` directories
-- Use `{% extends %}`, `{% block %}`, `{% url %}`
+### Error handling and robustness
+- Validate all query params (`q`, `ativo`, period filters) before filtering.
+- Use narrow exceptions (`ValueError`, `IntegrityError`) where possible.
+- Avoid broad `except Exception` unless converting to user-facing errors/messages.
+- For import pipelines, collect row-level errors instead of failing entire file when possible.
+- Preserve idempotency patterns (`update_or_create`, delete-and-reinsert strategy where already used).
 
-### Error Handling
-- Use `get_object_or_404` for 404s
-- Try/except for operations that may fail:
-  ```python
-  try:
-      form.save()
-  except Exception as e:
-      messages.error(request, f'Erro ao salvar: {e}')
-  ```
+### Security and config
+- Never commit secrets or real credentials.
+- Use environment variables from `config/settings.py` (`SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_PATH`, email vars).
+- Include `{% csrf_token %}` in every POST form.
+- Keep login requirement behavior compatible with `config/middleware.py`.
 
-### Testing
-- **Toda feature nova deve ser acompanhada de testes**
-- Use Django `TestCase`
-- Use `Client()` for view tests
-- Name: `test_<description>`
-- Group in classes: `<ModelOrFeature>Test`
-- Use `setUp()` and `reverse()`
+## Testing Conventions
+- New feature or bug fix should include/adjust tests.
+- Use `django.test.TestCase` and `Client` for view integration tests.
+- Prefer `reverse('app:view_name')` over hardcoded URLs in tests.
+- Assert status code, template context, and key persisted side effects.
+- Keep fixtures in `setUp()` and use deterministic values (plates, OS numbers, dates).
 
-### Admin
-- Use `@admin.register(Model)` decorator
-- Define `list_display`, `list_filter`, `search_fields`
-
-### Security
-- Never commit secrets
-- Use environment variables
-- Use `{% csrf_token %}` in forms
-
----
-
-## Common Patterns
-
-### Filter Querysets
-```python
-qs = Model.objects.all()
-q = request.GET.get('q', '').strip()
-if q:
-    qs = qs.filter(campo__icontains=q)
-ativo = request.GET.get('ativo')
-if ativo == '1':
-    qs = qs.filter(ativo=True)
-elif ativo == '0':
-    qs = qs.filter(ativo=False)
-```
-
-### JSON Response
-```python
-return JsonResponse([
-    {'placa': v.placa, 'label': f'{v.placa} — {v.marca}'}
-    for v in veiculos
-], safe=False)
-```
-
-### Form Handling
-```python
-if request.method == 'POST':
-    form = MyForm(request.POST)
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'Sucesso!')
-        return redirect('app:url_name')
-else:
-    form = MyForm()
-return render(request, 'template.html', {'form': form})
-```
-
----
-
-## Database
-- Path: `BASE_DIR / 'db.sqlite3'`
-- Env vars: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`
-- Use `DecimalField` for monetary values
+## Agent Workflow Expectations
+- Before finishing: run at least targeted tests for touched app/module.
+- If models changed: generate migration, run migrate, and ensure tests still pass.
+- If command output reveals unrelated pre-existing failures, report clearly and do not hide them.
+- Keep commits focused and small when asked to commit.

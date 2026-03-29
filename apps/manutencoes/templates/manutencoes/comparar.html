@@ -63,11 +63,24 @@
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for linha in linhas %}
-                <tr>
+                <tr {% if comparar_historico and linha.historico and linha.historico.alerta_repeticao %}class="bg-amber-50/40 dark:bg-amber-900/10"{% endif %}>
                     <td class="px-4 py-2 sticky left-0 bg-white dark:bg-gray-800 z-10 border-r border-gray-200 dark:border-gray-700">
                         <div class="font-medium">{{ linha.descricao }}</div>
                         {% if linha.chave != linha.descricao %}
                         <div class="text-xs text-gray-400 font-mono">{{ linha.chave }}</div>
+                        {% endif %}
+                        {% if comparar_historico and linha.historico %}
+                        <div class="mt-1 text-xs {% if linha.historico.alerta_repeticao %}text-red-700 dark:text-red-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                            {% if linha.historico.alerta_repeticao %}<span class="font-semibold">Alerta:</span>{% else %}<span>Histórico:</span>{% endif %}
+                            {{ linha.historico.meses_desde|floatformat:1 }} meses desde a
+                            <a href="{% url 'manutencoes:detalhe' linha.historico.numero_os %}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="underline hover:no-underline font-mono">OS {{ linha.historico.numero_os }}</a>
+                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500">
+                            {{ linha.historico.oficina }} • {{ linha.historico.data|date:'d/m/Y' }}
+                        </div>
                         {% endif %}
                     </td>
                     {% for celula in linha.celulas %}
@@ -107,5 +120,76 @@
             </tfoot>
         </table>
     </div>
+
+    <details class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <summary class="px-4 py-3 cursor-pointer text-sm font-semibold select-none flex items-center gap-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Leves</span>
+            <span>Resumo de periodicidade preventiva (referência de frota)</span>
+        </summary>
+        <div class="px-4 pb-4 overflow-x-auto">
+            <table class="w-full text-xs md:text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        <th class="px-3 py-2 text-left font-semibold">Item</th>
+                        <th class="px-3 py-2 text-left font-semibold">Km (média)</th>
+                        <th class="px-3 py-2 text-left font-semibold">Tempo (média)</th>
+                        <th class="px-3 py-2 text-left font-semibold">Risco ao postergar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr><td class="px-3 py-2">Óleo motor + filtro</td><td class="px-3 py-2">7.500–10.000 km</td><td class="px-3 py-2">6–12 meses</td><td class="px-3 py-2">Alto</td></tr>
+                    <tr><td class="px-3 py-2">Filtro de ar</td><td class="px-3 py-2">10.000–15.000 km</td><td class="px-3 py-2">12 meses</td><td class="px-3 py-2">Médio</td></tr>
+                    <tr><td class="px-3 py-2">Filtro de combustível</td><td class="px-3 py-2">20.000–30.000 km</td><td class="px-3 py-2">12–24 meses</td><td class="px-3 py-2">Médio/Alto</td></tr>
+                    <tr><td class="px-3 py-2">Filtro de cabine</td><td class="px-3 py-2">10.000–15.000 km</td><td class="px-3 py-2">6–12 meses</td><td class="px-3 py-2">Baixo/Médio</td></tr>
+                    <tr><td class="px-3 py-2">Pastilha de freio</td><td class="px-3 py-2">20.000–40.000 km</td><td class="px-3 py-2">Por desgaste</td><td class="px-3 py-2">Alto</td></tr>
+                    <tr><td class="px-3 py-2">Disco de freio</td><td class="px-3 py-2">40.000–80.000 km</td><td class="px-3 py-2">Por condição</td><td class="px-3 py-2">Alto</td></tr>
+                    <tr><td class="px-3 py-2">Fluido de freio</td><td class="px-3 py-2">—</td><td class="px-3 py-2">24 meses</td><td class="px-3 py-2">Alto</td></tr>
+                    <tr><td class="px-3 py-2">Fluido de arrefecimento</td><td class="px-3 py-2">—</td><td class="px-3 py-2">24–60 meses</td><td class="px-3 py-2">Alto</td></tr>
+                    <tr><td class="px-3 py-2">Óleo câmbio manual</td><td class="px-3 py-2">60.000–100.000 km</td><td class="px-3 py-2">48–60 meses</td><td class="px-3 py-2">Médio/Alto</td></tr>
+                    <tr><td class="px-3 py-2">Óleo câmbio automático/CVT</td><td class="px-3 py-2">40.000–60.000 km</td><td class="px-3 py-2">24–48 meses</td><td class="px-3 py-2">Alto</td></tr>
+                    <tr><td class="px-3 py-2">Velas</td><td class="px-3 py-2">30.000–40.000 km (comum)</td><td class="px-3 py-2">24–60 meses</td><td class="px-3 py-2">Médio</td></tr>
+                    <tr><td class="px-3 py-2">Correia dentada</td><td class="px-3 py-2">60.000–100.000 km</td><td class="px-3 py-2">48–60 meses</td><td class="px-3 py-2">Crítico</td></tr>
+                </tbody>
+            </table>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Referência média para frota leve. Sempre aplicar "o que ocorrer primeiro" e priorizar o manual do fabricante.
+            </p>
+        </div>
+    </details>
+
+    <details class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <summary class="px-4 py-3 cursor-pointer text-sm font-semibold select-none flex items-center gap-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Caminhões</span>
+            <span>Resumo de periodicidade preventiva</span>
+        </summary>
+        <div class="px-4 pb-4 overflow-x-auto">
+            <table class="w-full text-xs md:text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        <th class="px-3 py-2 text-left font-semibold">Item</th>
+                        <th class="px-3 py-2 text-left font-semibold">Km/horas (média)</th>
+                        <th class="px-3 py-2 text-left font-semibold">Tempo (média)</th>
+                        <th class="px-3 py-2 text-left font-semibold">Observação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr><td class="px-3 py-2">Óleo motor + filtro</td><td class="px-3 py-2">20.000–40.000 km (ou 500–800 h)</td><td class="px-3 py-2">6–12 meses</td><td class="px-3 py-2">Urbano severo: 15.000–25.000 km</td></tr>
+                    <tr><td class="px-3 py-2">Filtro de combustível</td><td class="px-3 py-2">20.000–40.000 km</td><td class="px-3 py-2">6–12 meses</td><td class="px-3 py-2">Diesel contaminado antecipa</td></tr>
+                    <tr><td class="px-3 py-2">Filtro de ar</td><td class="px-3 py-2">30.000–60.000 km</td><td class="px-3 py-2">Até 12 meses</td><td class="px-3 py-2">Preferir indicador de restrição</td></tr>
+                    <tr><td class="px-3 py-2">Pastilha/lona de freio</td><td class="px-3 py-2">40.000–120.000 km</td><td class="px-3 py-2">Por desgaste</td><td class="px-3 py-2">Carga/topografia mudam muito</td></tr>
+                    <tr><td class="px-3 py-2">Disco/tambor</td><td class="px-3 py-2">120.000–300.000 km</td><td class="px-3 py-2">Por condição</td><td class="px-3 py-2">Medir espessura/ovalização</td></tr>
+                    <tr><td class="px-3 py-2">Fluido de freio</td><td class="px-3 py-2">—</td><td class="px-3 py-2">24 meses</td><td class="px-3 py-2">Nem todo caminhão usa freio hidráulico</td></tr>
+                    <tr><td class="px-3 py-2">Fluido de arrefecimento</td><td class="px-3 py-2">—</td><td class="px-3 py-2">24–36 meses (até 60 OAT)</td><td class="px-3 py-2">Controlar pH e concentração</td></tr>
+                    <tr><td class="px-3 py-2">Óleo transmissão</td><td class="px-3 py-2">80.000–160.000 km</td><td class="px-3 py-2">24–48 meses</td><td class="px-3 py-2">Severo: usar limite inferior</td></tr>
+                    <tr><td class="px-3 py-2">Óleo diferencial</td><td class="px-3 py-2">60.000–120.000 km</td><td class="px-3 py-2">24–36 meses</td><td class="px-3 py-2">Carga alta reduz intervalo</td></tr>
+                    <tr><td class="px-3 py-2">Velas (quando aplicável)</td><td class="px-3 py-2">30.000–60.000 km</td><td class="px-3 py-2">24–36 meses</td><td class="px-3 py-2">Maioria diesel não aplica</td></tr>
+                    <tr><td class="px-3 py-2">Correias de acessórios</td><td class="px-3 py-2">60.000–120.000 km</td><td class="px-3 py-2">24–48 meses</td><td class="px-3 py-2">Inspeção visual frequente</td></tr>
+                </tbody>
+            </table>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Referência para frota de caminhões. Aplicar "o que ocorrer primeiro" e priorizar o manual OEM.
+            </p>
+        </div>
+    </details>
 </div>
 {% endblock %}

@@ -185,6 +185,32 @@ class CompararOrcamentosViewTest(TestCase):
             valor_unit=Decimal('80.00'), qtd=Decimal('1'), total=Decimal('80.00'),
         )
 
+    def _criar_historico_item(self, descricao, data_abertura, status_os='Executada', placa='CMP0001'):
+        veiculo = Veiculo.objects.get(placa=placa)
+        manutencao_hist = Manutencao.objects.create(
+            numero_os=f'2025 - {Manutencao.objects.count() + 100}',
+            veiculo=veiculo,
+            data_abertura=timezone.make_aware(data_abertura),
+            data_encerramento=timezone.make_aware(data_abertura),
+            status=status_os,
+        )
+        orc_hist = Orcamento.objects.create(
+            manutencao=manutencao_hist,
+            codigo_orcamento=9000 + Orcamento.objects.count(),
+            data=data_abertura.date(),
+            oficina='OFICINA HISTORICO',
+            valor=Decimal('200.00'),
+            status='Executado',
+        )
+        ItemOrcamento.objects.create(
+            orcamento=orc_hist,
+            tipo='PCA',
+            descricao=descricao,
+            valor_unit=Decimal('40.00'),
+            qtd=Decimal('1'),
+            total=Decimal('40.00'),
+        )
+
     def test_comparar_pagina_carrega(self):
         response = self.client.get(reverse('manutencoes:comparar_orcamentos', args=['2026 - 100']))
         self.assertEqual(response.status_code, 200)
@@ -283,6 +309,90 @@ class CompararOrcamentosViewTest(TestCase):
         oficinas_curtas = [o.oficina_curta for o in response.context['orcamentos']]
         self.assertIn('AUTO PECAS', oficinas_curtas)
         self.assertIn('MECANICA SILVA', oficinas_curtas)
+
+    def test_comparar_historico_mesmo_veiculo_os_executada(self):
+        self._criar_historico_item(
+            descricao='FILTRO DE OLEO',
+            data_abertura=datetime(2025, 12, 20, 8, 0),
+            status_os='Executada',
+            placa='CMP0001',
+        )
+
+        response = self.client.get(
+            reverse('manutencoes:comparar_orcamentos', args=['2026 - 100']),
+        )
+
+        linha = next(l for l in response.context['linhas'] if l['descricao'] == 'FILTRO DE OLEO')
+        self.assertIsNotNone(linha['historico'])
+        self.assertEqual(linha['historico']['oficina'], 'OFICINA HISTORICO')
+        self.assertTrue(linha['historico']['alerta_repeticao'])
+
+    def test_comparar_historico_ignora_os_nao_executada(self):
+        self._criar_historico_item(
+            descricao='FILTRO DE OLEO',
+            data_abertura=datetime(2025, 12, 20, 8, 0),
+            status_os='Orçamentação',
+            placa='CMP0001',
+        )
+
+        response = self.client.get(
+            reverse('manutencoes:comparar_orcamentos', args=['2026 - 100']),
+        )
+
+        linha = next(l for l in response.context['linhas'] if l['descricao'] == 'FILTRO DE OLEO')
+        self.assertIsNone(linha['historico'])
+
+    def test_comparar_historico_fora_da_janela_sem_alerta(self):
+        self._criar_historico_item(
+            descricao='FILTRO DE OLEO',
+            data_abertura=datetime(2023, 1, 10, 8, 0),
+            status_os='Executada',
+            placa='CMP0001',
+        )
+
+        response = self.client.get(
+            reverse('manutencoes:comparar_orcamentos', args=['2026 - 100']),
+        )
+
+        linha = next(l for l in response.context['linhas'] if l['descricao'] == 'FILTRO DE OLEO')
+        self.assertIsNotNone(linha['historico'])
+        self.assertFalse(linha['historico']['alerta_repeticao'])
+
+    def test_comparar_historico_ignora_outro_veiculo(self):
+        Veiculo.objects.create(placa='CMP9999', marca='GM', modelo='ONIX')
+        self._criar_historico_item(
+            descricao='FILTRO DE OLEO',
+            data_abertura=datetime(2025, 12, 20, 8, 0),
+            status_os='Executada',
+            placa='CMP9999',
+        )
+
+        response = self.client.get(
+            reverse('manutencoes:comparar_orcamentos', args=['2026 - 100']),
+        )
+
+        linha = next(l for l in response.context['linhas'] if l['descricao'] == 'FILTRO DE OLEO')
+        self.assertIsNone(linha['historico'])
+
+    def test_comparar_historico_duas_trocas_lista_somente_ultima(self):
+        self._criar_historico_item(
+            descricao='FILTRO DE OLEO',
+            data_abertura=datetime(2025, 6, 10, 8, 0),
+            status_os='Executada',
+            placa='CMP0001',
+        )
+        self._criar_historico_item(
+            descricao='FILTRO DE OLEO',
+            data_abertura=datetime(2025, 12, 20, 8, 0),
+            status_os='Executada',
+            placa='CMP0001',
+        )
+
+        response = self.client.get(reverse('manutencoes:comparar_orcamentos', args=['2026 - 100']))
+
+        linha = next(l for l in response.context['linhas'] if l['descricao'] == 'FILTRO DE OLEO')
+        self.assertIsNotNone(linha['historico'])
+        self.assertEqual(linha['historico']['data'].date(), datetime(2025, 12, 20).date())
 
 
 class AnalisePrecosViewTest(TestCase):
